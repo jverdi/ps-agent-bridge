@@ -143,14 +143,15 @@ Workflow:
 What the workflow does:
 
 - Runs `npm ci`, `npm run check`, `npm run build`
+- Uses npm trusted publishing (GitHub OIDC; no long-lived npm token)
 - Verifies release tag matches `package.json` version (`scripts/release/verify-release-tag.mjs`)
 - Publishes to npm
   - normal release -> `latest`
   - prerelease -> `next`
 
-Required secret:
+Prerequisite:
 
-- `NPM_TOKEN` (npm automation token with publish permissions for this package)
+- Configure npm trusted publisher for this repository/workflow in npm package settings.
 
 ## Docs publishing automation (Mintlify)
 

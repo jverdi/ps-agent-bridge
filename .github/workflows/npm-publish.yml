@@ -28,6 +28,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      - name: Setup npm (trusted publishing compatible)
+        run: npm install -g npm@11.5.1
+
       - name: Install dependencies
         run: npm ci
 
@@ -44,12 +47,8 @@ jobs:
 
       - name: Publish prerelease with next dist-tag
         if: ${{ github.event.release.prerelease }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --tag next
 
       - name: Publish release with latest dist-tag
         if: ${{ !github.event.release.prerelease }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance
