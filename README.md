@@ -1,5 +1,7 @@
 # psagent scaffold
 
+Formatted docs available at: https://ps-agent-bridge.jaredverdi.com
+
 Agent-ready Photoshop automation scaffold with:
 
 - `psagent` CLI command tree
