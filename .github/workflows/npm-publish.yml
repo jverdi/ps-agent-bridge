@@ -25,11 +25,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
           cache: npm
 
       - name: Setup npm (trusted publishing compatible)
         run: npm install -g npm@11.5.1
+
+      - name: Enforce trusted publishing auth path (no npm token)
+        run: |
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            sed -i '/_authToken/d;/always-auth/d' "$NPM_CONFIG_USERCONFIG"
+          fi
+          echo "NODE_AUTH_TOKEN=" >> "$GITHUB_ENV"
+          echo "NPM_TOKEN=" >> "$GITHUB_ENV"
+          npm config set registry https://registry.npmjs.org/
 
       - name: Install dependencies
         run: npm ci
