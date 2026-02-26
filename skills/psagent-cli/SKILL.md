@@ -1,18 +1,13 @@
 ---
-name: psagent-cli
-description: Use the PSAgent CLI/bridge safely and efficiently for Photoshop automation, operation envelopes, and MCP workflows.
+name: ps-agent-bridge
+description: Use PS Agent Bridge for efficient Photoshop automation with the accompanying Photoshop CLI and UXP plugins
 metadata:
-  short-description: Practical playbook for CLI + UXP bridge + MCP operations
+  short-description: Photoshop automation via plugin and CLI
 ---
 
-# PSAgent CLI Skill
+# PS Agent Bridge Skill
 
-Use this skill when working in the `cccli` repository and the task involves:
-
-- Running Photoshop automation through `psagent`
-- Applying `ops` envelopes
-- Diagnosing bridge/daemon/plugin failures
-- Running the local MCP server for agent tool use
+Use this skill when automating Photoshop document creation and manipulation, such as working with PSD files or creating layered images.
 
 ## Fast Start
 
@@ -82,7 +77,11 @@ Main tools:
 - `photoshop_checkpoint_restore`
 - `photoshop_events_tail`
 
-## Operation Envelope Rules
+## Operation Envelope
+
+- See https://ps-agent-bridge.jaredverdi.com/reference/operation-catalog for available operations
+
+## Additional Operation Envelope Rules
 
 - Always include `transactionId`, `doc`, and non-empty `ops[]`.
 - Prefer `--checkpoint` for mutating tests.

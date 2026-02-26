@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 HOT_RELOAD_PORT="${PSAGENT_HOT_RELOAD_PORT:-43121}"
 HOT_RELOAD_TIMEOUT_SEC="${PSAGENT_HOT_RELOAD_TIMEOUT_SEC:-45}"
-LOG_FILE="${PSAGENT_HOT_RELOAD_LOG:-/tmp/cccli-bridge-hotreload-verify.log}"
+LOG_FILE="${PSAGENT_HOT_RELOAD_LOG:-/tmp/ps-agent-bridge-hotreload-verify.log}"
 
 cd "${REPO_ROOT}"
 

@@ -1,5 +1,5 @@
 {
-  "name": "cccli-psagent-scaffold",
+  "name": "ps-agent-bridge",
   "version": "0.1.0",
   "type": "module",
   "description": "Photoshop agent CLI scaffold with desktop adapter",
