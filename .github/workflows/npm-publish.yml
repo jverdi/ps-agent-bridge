@@ -47,8 +47,12 @@ jobs:
 
       - name: Publish prerelease with next dist-tag
         if: ${{ github.event.release.prerelease }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --tag next
 
       - name: Publish release with latest dist-tag
         if: ${{ !github.event.release.prerelease }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance
