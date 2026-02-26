@@ -1,0 +1,44 @@
+---
+title: "Local environment"
+description: "Configuration precedence, environment variables, and local command scripts."
+---
+
+## Scripts
+
+From `package.json`:
+
+```json
+{
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx psagent/src/cli.ts",
+    "test:integration": "tsx --test tests/integration/**/*.test.ts",
+    "start": "node dist/psagent/src/cli.js",
+    "mcp": "node dist/psagent/src/mcp/server.js",
+    "bridge:reload": "bash scripts/dev/reload-psagent-bridge.sh",
+    "bridge:hotreload": "node scripts/dev/hot-reload-server.mjs",
+    "skill:install": "bash scripts/dev/install-psagent-skill.sh"
+  }
+}
+```
+
+## Configuration precedence
+
+`flags > env > session > project config > user config > defaults`
+
+- Project config: `.psagent.json`
+- User config: `~/.config/psagent/config.json`
+
+## Environment variables
+
+- `PSAGENT_PROFILE`
+- `PSAGENT_TIMEOUT_MS`
+- `PSAGENT_PLUGIN_ENDPOINT`
+- `PSAGENT_DRY_RUN`
+
+## Desktop mode defaults
+
+- Mode: `desktop`
+- Timeout: `15000` ms
+- Plugin endpoint: `http://127.0.0.1:43120`

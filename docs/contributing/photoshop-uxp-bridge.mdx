@@ -1,0 +1,39 @@
+---
+title: "Photoshop UXP bridge"
+description: "Panel behavior, permissions, and bridge connection workflow inside Photoshop."
+---
+
+## Panel controls
+
+The `PS Agent Bridge` panel provides:
+
+- Connection status line (`Connected`/`Disconnected`)
+- Single connect/disconnect toggle button
+- Transaction log (append-only, scrollable)
+- `Clear Log` button
+
+## Required permissions
+
+`photoshop-uxp-bridge/manifest.json` requires:
+
+- Network access to all domains (`requiredPermissions.network.domains = "all"`)
+- Local file system full access (`requiredPermissions.localFileSystem = "fullAccess"`)
+
+If network permission is missing or stale, bridge polling fails with URL permission errors.
+
+## Connection flow
+
+1. Bridge daemon receives CLI calls on `/rpc`.
+2. UXP plugin registers client on `/bridge/register`.
+3. Plugin long-polls `/bridge/poll`.
+4. Plugin executes operations and returns `/bridge/result`.
+
+## Reload rule
+
+After plugin code or manifest changes:
+
+1. Run `npm run bridge:reload` (macOS automation path).
+2. If automation is unavailable, reload from UXP Developer Tool manually.
+3. Reconnect in panel UI only if auto-connect did not succeed.
+
+Do not run Photoshop integration tests until reload is confirmed.

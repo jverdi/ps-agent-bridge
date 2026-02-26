@@ -29,17 +29,17 @@
         "group": "Guides",
         "pages": [
           "guides/real-world-workflows",
-          "troubleshooting/common-errors"
+          "guides/troubleshooting"
         ]
       },
       {
         "group": "Contributing",
         "pages": [
-          "contributing",
-          "setup/local-environment",
-          "setup/photoshop-uxp-bridge",
-          "guides/testing-and-validation",
-          "reference/rpc-and-mcp"
+          "contributing/developer-setup",
+          "contributing/local-environment",
+          "contributing/photoshop-uxp-bridge",
+          "contributing/testing-and-validation",
+          "contributing/rpc-and-mcp"
         ]
       }
     ]

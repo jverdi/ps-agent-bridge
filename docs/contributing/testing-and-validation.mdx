@@ -1,0 +1,42 @@
+---
+title: "Testing and validation"
+description: "Run integration tests and manual Photoshop checks for operation correctness."
+---
+
+## Integration tests
+
+Run end-to-end tests against the mock bridge:
+
+```bash
+npm run test:integration
+```
+
+Coverage includes:
+
+- Full planned operation payload through CLI -> adapter -> `/rpc`.
+- Mutation assertions for layer/text outcomes.
+- Dry-run non-mutation behavior.
+- Abort vs continue behavior.
+- Rollback with checkpoint behavior.
+
+## Manual Photoshop smoke tests
+
+1. Start daemon: `npm run dev -- bridge daemon`
+2. Reload plugin in UXP Developer Tool.
+3. Connect bridge in panel.
+4. Run operation payloads with `npm run dev -- op apply -f <file>`.
+5. Inspect Photoshop layer state and panel logs.
+
+## High-signal verification commands
+
+```bash
+npm run dev -- doctor
+npm run dev -- bridge status
+npm run dev -- layer list
+npm run dev -- doc manifest
+npm run dev -- events tail --count 50
+```
+
+## Required gate after bridge changes
+
+After any change that affects plugin runtime or manifest, reload plugin and reconnect before running tests.
