@@ -12,8 +12,8 @@
       {
         "group": "Start here",
         "pages": [
-          "introduction",
-          "quickstart"
+          "start-here/introduction",
+          "start-here/quickstart"
         ]
       },
       {
