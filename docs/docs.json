@@ -17,33 +17,29 @@
         ]
       },
       {
-        "group": "Setup",
-        "pages": [
-          "setup/local-environment",
-          "setup/photoshop-uxp-bridge"
-        ]
-      },
-      {
         "group": "Reference",
         "pages": [
           "reference/cli-reference",
-          "reference/operation-envelope",
           "reference/operation-catalog",
           "reference/operation-arguments-and-examples",
-          "reference/rpc-and-mcp"
+          "reference/operation-envelope"
         ]
       },
       {
         "group": "Guides",
         "pages": [
           "guides/real-world-workflows",
-          "guides/testing-and-validation"
+          "troubleshooting/common-errors"
         ]
       },
       {
-        "group": "Troubleshooting",
+        "group": "Contributing",
         "pages": [
-          "troubleshooting/common-errors"
+          "contributing",
+          "setup/local-environment",
+          "setup/photoshop-uxp-bridge",
+          "guides/testing-and-validation",
+          "reference/rpc-and-mcp"
         ]
       }
     ]

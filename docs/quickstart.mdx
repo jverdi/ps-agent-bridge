@@ -3,6 +3,11 @@ title: "Quickstart"
 description: "Install PS Agent Bridge as an end user, or follow contributor setup for local development."
 ---
 
+## Prerequisites
+
+- Node.js 20+ and npm
+- Adobe Photoshop 24+
+
 ## Add the skill (Codex / Claude Code)
 
 ```bash
@@ -11,15 +16,7 @@ npx skills add https://ps-agent-bridge.jaredverdi.com
 
 This uses the hosted [skill.md](/skill.md) for PS Agent Bridge.
 
-## Users
-
-Use this path if you want to use PS Agent Bridge without cloning the repository.
-
-### Prerequisites
-
-- Node.js 20+ and npm
-- Adobe Photoshop 24+
-- Creative Cloud Desktop app
+If you want to develop PS Agent Bridge itself, follow [developer setup](/contributing).
 
 ### Install CLI from npm
 
@@ -33,7 +30,7 @@ npm install -g @jverdi/ps-agent-bridge
 psagent bridge daemon
 ```
 
-### Install Photoshop plugin from Creative Cloud
+### Install Photoshop plugin from Creative Cloud Desktop
 
 1. Open Creative Cloud Desktop.
 2. Navigate to `Stock & Marketplace > Plugins`.
@@ -49,50 +46,6 @@ psagent session start
 psagent bridge status
 psagent layer list
 psagent doctor
-```
-
-## Contributing
-
-Use this path if you are developing PS Agent Bridge itself.
-
-### Prerequisites
-
-- Node.js 20+ and npm
-- Adobe Photoshop 24+
-- UXP Developer Tool
-
-### Install and build from repository
-
-```bash
-git clone https://github.com/jverdi/ps-agent-bridge.git
-cd ps-agent-bridge
-npm install
-npm run build
-```
-
-### Start bridge daemon (repo dev mode)
-
-```bash
-npm run dev -- bridge daemon
-```
-
-### Load local UXP plugin in Photoshop
-
-1. Open UXP Developer Tool.
-2. Add the `photoshop-uxp-bridge/` folder as a plugin.
-3. Load the plugin.
-4. In Photoshop, open the `PS Agent Bridge` panel.
-5. Click `Connect Bridge`.
-
-### Run contributor commands
-
-```bash
-npm run dev -- session start
-npm run dev -- doc open ./examples/tests/input.psd
-npm run dev -- layer list
-npm run dev -- op apply -f examples/ops.cleanup.sample.json --checkpoint
-npm run dev -- render --format png --out ./out/mock.png
-npm run dev -- doctor
 ```
 
 Next: [local environment](/setup/local-environment).

@@ -1,0 +1,46 @@
+---
+title: "Developer Setup"
+description: "Developer setup for local development of PS Agent Bridge."
+---
+
+Use this path if you are developing PS Agent Bridge itself.
+
+## Prerequisites
+
+- Node.js 20+ and npm
+- Adobe Photoshop 24+
+- UXP Developer Tool
+
+## Install and build from repository
+
+```bash
+git clone https://github.com/jverdi/ps-agent-bridge.git
+cd ps-agent-bridge
+npm install
+npm run build
+```
+
+## Start bridge daemon (repo dev mode)
+
+```bash
+npm run dev -- bridge daemon
+```
+
+## Load local UXP plugin in Photoshop
+
+1. Open UXP Developer Tool.
+2. Add the `photoshop-uxp-bridge/` folder as a plugin.
+3. Load the plugin.
+4. In Photoshop, open the `PS Agent Bridge` panel.
+5. Click `Connect Bridge`.
+
+## Run contributor commands
+
+```bash
+npm run dev -- session start
+npm run dev -- doc open ./examples/tests/input.psd
+npm run dev -- layer list
+npm run dev -- op apply -f examples/ops.cleanup.sample.json --checkpoint
+npm run dev -- render --format png --out ./out/mock.png
+npm run dev -- doctor
+```
