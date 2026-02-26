@@ -19,7 +19,7 @@ const program = new Command();
 
 program
   .name("psagent")
-  .description("Photoshop Agent Bridge")
+  .description("Agent Bridge for Photoshop")
   .version("0.1.1")
   .showHelpAfterError()
   .option("--json", "JSON output")
