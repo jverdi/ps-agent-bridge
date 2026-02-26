@@ -1,0 +1,68 @@
+{
+  "transactionId": "real-world-blog-wireframe-date-nav-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    { "op": "createDocument", "name": "Blog Wireframe - Date Navigation", "width": 1440, "height": 2200, "resolution": 72, "ref": "doc" },
+    { "op": "createShapeLayer", "name": "Canvas BG", "x": 0, "y": 0, "width": 1440, "height": 2200, "fill": "#ECECEC" },
+    { "op": "createShapeLayer", "name": "Page", "x": 80, "y": 40, "width": 1280, "height": 2120, "fill": "#FFFFFF" },
+
+    { "op": "createShapeLayer", "name": "Top Header Bar", "x": 120, "y": 80, "width": 1200, "height": 60, "fill": "#F5F5F5" },
+    { "op": "createTextLayer", "name": "Site Title", "text": "MY BLOG", "fontSize": 28, "position": { "x": 150, "y": 120 } },
+    { "op": "createTextLayer", "name": "Header Links", "text": "Home   About   Archive", "fontSize": 18, "position": { "x": 980, "y": 118 } },
+
+    { "op": "createShapeLayer", "name": "Date Nav Strip", "x": 120, "y": 170, "width": 1200, "height": 90, "fill": "#F8F8F8" },
+    { "op": "createTextLayer", "name": "Prev Label", "text": "< Previous Day", "fontSize": 22, "position": { "x": 150, "y": 225 } },
+    { "op": "createTextLayer", "name": "Current Date", "text": "Tuesday, June 23, 2026", "fontSize": 24, "position": { "x": 560, "y": 225 } },
+    { "op": "createTextLayer", "name": "Next Label", "text": "Next Day >", "fontSize": 22, "position": { "x": 1130, "y": 225 } },
+
+    { "op": "createShapeLayer", "name": "Date Chip 1", "x": 420, "y": 275, "width": 140, "height": 44, "fill": "#E5E5E5" },
+    { "op": "createTextLayer", "name": "Chip 1 Label", "text": "Jun 21", "fontSize": 18, "position": { "x": 460, "y": 304 } },
+    { "op": "createShapeLayer", "name": "Date Chip 2", "x": 575, "y": 275, "width": 140, "height": 44, "fill": "#D0D0D0" },
+    { "op": "createTextLayer", "name": "Chip 2 Label", "text": "Jun 22", "fontSize": 18, "position": { "x": 615, "y": 304 } },
+    { "op": "createShapeLayer", "name": "Date Chip 3 Active", "x": 730, "y": 275, "width": 140, "height": 44, "fill": "#BDBDBD" },
+    { "op": "createTextLayer", "name": "Chip 3 Label", "text": "Jun 23", "fontSize": 18, "position": { "x": 770, "y": 304 } },
+    { "op": "createShapeLayer", "name": "Date Chip 4", "x": 885, "y": 275, "width": 140, "height": 44, "fill": "#D0D0D0" },
+    { "op": "createTextLayer", "name": "Chip 4 Label", "text": "Jun 24", "fontSize": 18, "position": { "x": 925, "y": 304 } },
+
+    { "op": "createShapeLayer", "name": "Hero Placeholder", "x": 120, "y": 340, "width": 1200, "height": 360, "fill": "#DADADA" },
+    { "op": "createTextLayer", "name": "Hero Label", "text": "[ Hero Image ]", "fontSize": 32, "position": { "x": 590, "y": 530 } },
+
+    { "op": "createTextLayer", "name": "Post Title", "text": "How We Ship Product Updates Every Day", "fontSize": 46, "position": { "x": 140, "y": 760 } },
+    { "op": "createTextLayer", "name": "Post Meta", "text": "June 23, 2026 · By Editorial Team · 8 min read", "fontSize": 22, "position": { "x": 140, "y": 820 } },
+
+    { "op": "createShapeLayer", "name": "Article Column", "x": 120, "y": 870, "width": 820, "height": 1120, "fill": "#FAFAFA" },
+    { "op": "createShapeLayer", "name": "Sidebar Column", "x": 970, "y": 870, "width": 350, "height": 1120, "fill": "#F3F3F3" },
+    { "op": "createTextLayer", "name": "Sidebar Heading", "text": "On this date", "fontSize": 28, "position": { "x": 1010, "y": 930 } },
+    { "op": "createShapeLayer", "name": "Sidebar Item 1", "x": 1005, "y": 970, "width": 280, "height": 110, "fill": "#E0E0E0" },
+    { "op": "createShapeLayer", "name": "Sidebar Item 2", "x": 1005, "y": 1100, "width": 280, "height": 110, "fill": "#E0E0E0" },
+    { "op": "createShapeLayer", "name": "Sidebar Item 3", "x": 1005, "y": 1230, "width": 280, "height": 110, "fill": "#E0E0E0" },
+
+    { "op": "createShapeLayer", "name": "P1 Line 1", "x": 160, "y": 940, "width": 740, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 2", "x": 160, "y": 975, "width": 710, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 3", "x": 160, "y": 1010, "width": 740, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 4", "x": 160, "y": 1045, "width": 690, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 5", "x": 160, "y": 1080, "width": 740, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 6", "x": 160, "y": 1115, "width": 700, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 7", "x": 160, "y": 1150, "width": 720, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P1 Line 8", "x": 160, "y": 1185, "width": 680, "height": 18, "fill": "#D6D6D6" },
+
+    { "op": "createTextLayer", "name": "Subheading", "text": "Section Heading", "fontSize": 34, "position": { "x": 160, "y": 1275 } },
+    { "op": "createShapeLayer", "name": "P2 Line 1", "x": 160, "y": 1315, "width": 740, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P2 Line 2", "x": 160, "y": 1350, "width": 710, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P2 Line 3", "x": 160, "y": 1385, "width": 735, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P2 Line 4", "x": 160, "y": 1420, "width": 680, "height": 18, "fill": "#D6D6D6" },
+    { "op": "createShapeLayer", "name": "P2 Line 5", "x": 160, "y": 1455, "width": 700, "height": 18, "fill": "#D6D6D6" },
+
+    { "op": "createShapeLayer", "name": "Bottom Date Nav", "x": 120, "y": 2050, "width": 1200, "height": 70, "fill": "#F6F6F6" },
+    { "op": "createTextLayer", "name": "Bottom Prev", "text": "< June 22", "fontSize": 22, "position": { "x": 160, "y": 2095 } },
+    { "op": "createTextLayer", "name": "Bottom Next", "text": "June 24 >", "fontSize": 22, "position": { "x": 1140, "y": 2095 } },
+
+    { "op": "exportDocument", "format": "png", "output": "./tmp/blog-wireframe-datenav.png" }
+  ],
+  "safety": {
+    "dryRun": false,
+    "onError": "abort"
+  }
+}

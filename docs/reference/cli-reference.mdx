@@ -1,0 +1,87 @@
+---
+title: "CLI reference"
+description: "Command surface for sessions, docs, layers, operations, rendering, events, and bridge tools."
+---
+
+## Global flags
+
+- `--json`
+- `--plain`
+- `-q, --quiet`
+- `-v, --verbose`
+- `--no-color`
+- `--no-input`
+- `--timeout <ms>`
+- `--config <path>`
+- `--profile <name>`
+- `--mode <desktop|cloud>`
+- `-n, --dry-run`
+
+## Core commands
+
+### Session
+
+```bash
+psagent session start [--mode desktop|cloud] [--profile <name>]
+psagent session status
+```
+
+### Documents
+
+```bash
+psagent doc open <input>
+psagent doc manifest [--doc <ref>]
+```
+
+### Layers
+
+```bash
+psagent layer list [--match <regex>] [--doc <ref>]
+```
+
+### Operations
+
+```bash
+psagent op apply -f <ops.json> [--doc <ref>] [--checkpoint] [--dry-run]
+```
+
+### Rendering
+
+```bash
+psagent render --format png|jpg --out <path> [--doc <ref>]
+```
+
+### Checkpoints
+
+```bash
+psagent checkpoint list [--doc <ref>]
+psagent checkpoint restore <id> [--doc <ref>]
+```
+
+### Events and diagnostics
+
+```bash
+psagent events tail [--count <n>]
+psagent doctor
+psagent capabilities
+```
+
+### Bridge utilities
+
+```bash
+psagent bridge daemon [--port 43120]
+psagent bridge status
+psagent bridge mock [--port 43120]
+```
+
+### MCP server
+
+```bash
+psagent mcp-serve
+```
+
+## Exit behavior
+
+- Health failures in `doctor` set process exit code `4`.
+- Session start fails if adapter health is not OK.
+- Schema validation errors in `op apply` are returned as command failures.

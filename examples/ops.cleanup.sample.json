@@ -1,0 +1,21 @@
+{
+  "transactionId": "cleanup-sample-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "createLayer",
+      "name": "CLI Temp Layer"
+    },
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "CLI Temp Layer"
+      }
+    }
+  ],
+  "safety": {
+    "dryRun": false
+  }
+}

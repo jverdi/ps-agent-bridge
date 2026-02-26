@@ -1,0 +1,52 @@
+---
+title: "Real-world workflows"
+description: "Patterns for agent-driven creative workflows with predictable results."
+---
+
+## Workflow shape
+
+1. Start session and open target doc.
+2. Apply a deterministic operation envelope.
+3. Validate manifest/layers.
+4. Export outputs.
+5. Cleanup temporary layers.
+
+## Recommended transaction pattern
+
+```json
+{
+  "transactionId": "creative-pass-001",
+  "doc": { "ref": "active" },
+  "ops": [
+    { "op": "createLayer", "name": "temp_work", "ref": "tempLayer" },
+    { "op": "createTextLayer", "name": "Headline", "text": "Summer launch", "ref": "headline" },
+    {
+      "op": "setTextStyle",
+      "target": "$headline",
+      "font": "Avenir Next Bold",
+      "fontSize": 96,
+      "maxWidth": 900,
+      "avoidOverlapWith": ["$tempLayer"]
+    },
+    { "op": "exportDocument", "format": "png", "output": "./tmp/creative-pass.png" },
+    { "op": "deleteLayer", "target": "$tempLayer" }
+  ],
+  "safety": {
+    "rollbackOnError": true,
+    "onError": "abort"
+  }
+}
+```
+
+## Avoid common quality failures
+
+- Always set text style explicitly after `createTextLayer`.
+- Use `maxWidth`/`maxHeight` when typography must stay within frame.
+- Use overlap avoidance when foreground text can collide with images.
+- Keep cleanup ops (`deleteLayer`) in every test/design pass.
+
+## Examples in repository
+
+- `examples/real-world/blog-wireframe-date-nav.json`
+- `examples/real-world/instagram-reels-beach-coffee-3-variants.json`
+- `examples/real-world/instagram-reels-beach-coffee-3-variants-pass2.json`

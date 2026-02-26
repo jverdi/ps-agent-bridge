@@ -1,0 +1,119 @@
+---
+title: "Operation catalog"
+description: "Canonical operation names implemented by the UXP bridge, grouped by capability family."
+---
+
+Canonical names are registered in `photoshop-uxp-bridge/index.js`. Alias forms (for example `layer.rename`, `doc.open`) map to the same handlers.
+
+## Documents
+
+- `createDocument`
+- `openDocument`
+- `duplicateDocument`
+- `saveDocument`
+- `saveDocumentAs`
+- `closeDocument`
+- `resizeImage`
+- `resizeCanvas`
+- `cropDocument`
+- `trimDocument`
+- `rotateDocument`
+- `flattenDocument` (`flattenImage` alias)
+- `mergeVisible`
+
+## Layers and grouping
+
+- `createLayer`
+- `createPixelLayer`
+- `createGroup`
+- `groupLayers`
+- `ungroupLayer`
+- `deleteLayer`
+- `renameLayer`
+- `duplicateLayer`
+- `selectLayer`
+- `selectLayers`
+- `moveLayer` (`reorderLayer` alias)
+- `setLayerVisibility`
+- `showLayer`
+- `hideLayer`
+- `setLayerOpacity`
+- `setBlendMode`
+- `setLayerProps`
+- `bringLayerToFront`
+- `sendLayerToBack`
+- `mergeLayer` (`mergeLayers` alias)
+- `rasterizeLayer`
+- `linkLayers`
+- `unlinkLayer`
+
+## Transform and layout
+
+- `transformLayer`
+- `alignLayers`
+- `distributeLayers`
+- `translateLayer`
+- `scaleLayer`
+- `rotateLayer`
+- `flipLayer`
+- `skewLayer`
+
+## Assets and smart objects
+
+- `placeAsset`
+- `convertToSmartObject`
+- `replaceSmartObject`
+- `relinkSmartObject`
+- `editSmartObject`
+
+## Selection and masks
+
+- `selectAll`
+- `deselect`
+- `inverseSelection` (`invertSelection` alias)
+- `featherSelection`
+- `expandSelection`
+- `contractSelection`
+- `growSelection`
+- `smoothSelection`
+- `selectRectangle`
+- `selectEllipse`
+- `selectPolygon`
+- `selectLayerPixels`
+- `setSelection`
+- `modifySelection`
+- `createLayerMask` (`addLayerMask` alias)
+- `deleteLayerMask` (`removeLayerMask` alias)
+- `applyLayerMask`
+
+## Text and shapes
+
+- `createTextLayer`
+- `setText`
+- `setTextStyle`
+- `createShapeLayer`
+
+`setTextStyle` supports `text`, `fontSize`, `fontName`/`font`, `position`, bounds fitting (`maxWidth`, `maxHeight`, `minFontSize`), and overlap avoidance (`avoidOverlapWith`, `overlapGap`).
+
+## Adjustments and filters
+
+- `createAdjustmentLayer`
+- `applyFilter`
+- `applyGaussianBlur`
+- `applyUnsharpMask`
+- `applySharpen`
+- `applyBlur`
+
+## Export and low-level actions
+
+- `export`
+- `exportDocument`
+- `exportLayer`
+- `exportLayersByName`
+- `batchPlay`
+
+## Known behavior notes
+
+- BatchPlay errors are inspected for embedded descriptor errors and surfaced with indexed failure detail.
+- Layer-targeted export may use Photoshop-controlled filenames depending on command path.
+- Document save without output can skip to avoid Save As dialogs when no existing path is present.

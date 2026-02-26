@@ -1,0 +1,385 @@
+import assert from "node:assert/strict";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { once } from "node:events";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer } from "node:net";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+interface CliRunResult {
+  code: number;
+  stdout: string;
+  stderr: string;
+  json?: unknown;
+}
+
+interface IntegrationHarness {
+  fixturePath(name: string): string;
+  runJson(args: string[]): Promise<CliRunResult>;
+}
+
+const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
+
+const expectedPlannedOps = [
+  "createDocument",
+  "closeDocument",
+  "saveDocument",
+  "saveDocumentAs",
+  "duplicateDocument",
+  "createLayer",
+  "duplicateLayer",
+  "moveLayer",
+  "setLayerProps",
+  "groupLayers",
+  "ungroupLayer",
+  "mergeLayers",
+  "flattenImage",
+  "selectLayers",
+  "deleteLayer",
+  "renameLayer",
+  "transformLayer",
+  "alignLayers",
+  "distributeLayers",
+  "resizeCanvas",
+  "resizeImage",
+  "cropDocument",
+  "placeAsset",
+  "convertToSmartObject",
+  "replaceSmartObject",
+  "relinkSmartObject",
+  "createAdjustmentLayer",
+  "applyFilter",
+  "addLayerMask",
+  "removeLayerMask",
+  "applyLayerMask",
+  "setSelection",
+  "modifySelection",
+  "invertSelection",
+  "createShapeLayer",
+  "createTextLayer",
+  "setText",
+  "setTextStyle",
+  "exportDocument",
+  "exportLayer",
+  "exportLayersByName",
+  "batchPlay"
+].sort();
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Unable to resolve free port"));
+        return;
+      }
+
+      const port = address.port;
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(port);
+      });
+    });
+  });
+}
+
+async function runCliJson(args: string[], env: NodeJS.ProcessEnv): Promise<CliRunResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ["--import", "tsx", "psagent/src/cli.ts", "--json", ...args], {
+      cwd: repoRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      let json: unknown;
+      const trimmed = stdout.trim();
+      if (trimmed) {
+        try {
+          json = JSON.parse(trimmed);
+        } catch {
+          json = undefined;
+        }
+      }
+      resolve({
+        code: code ?? 1,
+        stdout,
+        stderr,
+        json
+      });
+    });
+  });
+}
+
+async function stopProcess(child: ChildProcessWithoutNullStreams): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return;
+  }
+
+  child.kill("SIGTERM");
+  const exited = await Promise.race([once(child, "exit").then(() => true), delay(2_000).then(() => false)]);
+
+  if (!exited) {
+    child.kill("SIGKILL");
+    await once(child, "exit");
+  }
+}
+
+async function startMockBridge(port: number, env: NodeJS.ProcessEnv): Promise<{ stop: () => Promise<void> }> {
+  const child = spawn(process.execPath, ["--import", "tsx", "psagent/src/cli.ts", "bridge", "mock", "--port", String(port)], {
+    cwd: repoRoot,
+    env,
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  let stdout = "";
+  let stderr = "";
+
+  await new Promise<void>((resolve, reject) => {
+    const readyLine = `mock bridge listening on http://127.0.0.1:${port}/rpc`;
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Mock bridge did not start in time. stdout=${stdout} stderr=${stderr}`));
+    }, 8_000);
+
+    const onStdout = (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+      if (stdout.includes(readyLine)) {
+        cleanup();
+        resolve();
+      }
+    };
+
+    const onStderr = (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    };
+
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      cleanup();
+      reject(new Error(`Mock bridge exited before ready. code=${String(code)} signal=${String(signal)} stdout=${stdout} stderr=${stderr}`));
+    };
+
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+
+    function cleanup(): void {
+      clearTimeout(timeout);
+      child.stdout.off("data", onStdout);
+      child.stderr.off("data", onStderr);
+      child.off("exit", onExit);
+      child.off("error", onError);
+    }
+
+    child.stdout.on("data", onStdout);
+    child.stderr.on("data", onStderr);
+    child.once("exit", onExit);
+    child.once("error", onError);
+  });
+
+  return {
+    stop: async () => {
+      await stopProcess(child);
+    }
+  };
+}
+
+function assertSuccess(result: CliRunResult, message: string): asserts result is CliRunResult & { json: Record<string, unknown> } {
+  assert.equal(result.code, 0, `${message} failed\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+  assert.ok(result.json && typeof result.json === "object", `${message} returned no JSON payload\nstdout:\n${result.stdout}`);
+}
+
+async function withHarness(fn: (harness: IntegrationHarness) => Promise<void>): Promise<void> {
+  const port = await getFreePort();
+  const tempHome = await mkdtemp(path.join(os.tmpdir(), "psagent-integration-"));
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    HOME: tempHome,
+    PSAGENT_PLUGIN_ENDPOINT: `http://127.0.0.1:${port}`
+  };
+
+  const bridge = await startMockBridge(port, env);
+
+  const harness: IntegrationHarness = {
+    fixturePath: (name: string) => path.join(repoRoot, "examples", "tests", "ops", name),
+    runJson: (args: string[]) => runCliJson(args, env)
+  };
+
+  try {
+    await fn(harness);
+  } finally {
+    await bridge.stop();
+    await rm(tempHome, { recursive: true, force: true });
+  }
+}
+
+async function readFixture(name: string): Promise<any> {
+  const source = await readFile(path.join(repoRoot, "examples", "tests", "ops", name), "utf8");
+  return JSON.parse(source);
+}
+
+test("applies full planned first-class capability payload through CLI -> adapter -> /rpc", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const payload = await readFixture("full-planned-capabilities.json");
+    const opNames = (payload.ops as Array<{ op: string }>).map((item) => item.op);
+    const uniqueNames = [...new Set(opNames)].sort();
+    assert.deepEqual(uniqueNames, expectedPlannedOps, "fixture must enumerate every planned first-class operation");
+
+    const apply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("full-planned-capabilities.json")]);
+    assertSuccess(apply, "op apply full-planned-capabilities");
+
+    const applyJson = apply.json as any;
+    assert.equal(applyJson.result.transactionId, "planned-capabilities-001");
+    assert.equal(applyJson.result.applied, payload.ops.length);
+    assert.equal(applyJson.result.failed ?? 0, 0);
+    assert.equal((applyJson.result.failures ?? []).length, 0);
+    assert.equal(Boolean(applyJson.result.aborted), false);
+
+    const refs = applyJson.result.refs ?? {};
+    assert.ok(refs.docA, "expected docA ref in apply result");
+    assert.ok(refs.layerA, "expected layerA ref in apply result");
+    assert.ok(refs.placedHero, "expected placedHero ref in apply result");
+
+    const events = await harness.runJson(["events", "tail", "--count", "20"]);
+    assertSuccess(events, "events tail full-planned-capabilities");
+    const eventMessages = (events.json as any).events.map((event: any) => String(event.message));
+    assert.ok(eventMessages.some((message: string) => message.includes("ops.apply tx=planned-capabilities-001")));
+  });
+});
+
+test("mutating operations update layer/text state and report success", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const apply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("mutate-supported-ops.json")]);
+    assertSuccess(apply, "op apply mutate-supported-ops");
+
+    const applyJson = apply.json as any;
+    assert.equal(applyJson.result.transactionId, "mutate-supported-001");
+    assert.equal(applyJson.result.applied, 2);
+    assert.equal((applyJson.result.failures ?? []).length, 0);
+
+    const layerList = await harness.runJson(["layer", "list"]);
+    assertSuccess(layerList, "layer list after mutate-supported-ops");
+    const layerNames = (layerList.json as any).layers.map((layer: any) => layer.name).sort();
+    assert.deepEqual(layerNames, ["Title"]);
+
+    const manifest = await harness.runJson(["doc", "manifest"]);
+    assertSuccess(manifest, "doc manifest after mutate-supported-ops");
+    const titleLayer = (manifest.json as any).layers.find((layer: any) => layer.name === "Title");
+    assert.ok(titleLayer, "Title layer should exist");
+    assert.equal(titleLayer.text.content, "Integration Title");
+  });
+});
+
+test("dry-run preserves state and abort-on-error stops subsequent mutations", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const dryRunApply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("dry-run-delete.json")]);
+    assertSuccess(dryRunApply, "op apply dry-run-delete");
+
+    const dryRunJson = dryRunApply.json as any;
+    assert.equal(dryRunJson.result.transactionId, "dry-run-delete-001");
+    assert.equal(dryRunJson.result.dryRun, true);
+    assert.equal(dryRunJson.result.applied, 1);
+    assert.equal((dryRunJson.result.failures ?? []).length, 0);
+
+    const afterDryRun = await harness.runJson(["layer", "list"]);
+    assertSuccess(afterDryRun, "layer list after dry-run");
+    const afterDryRunNames = (afterDryRun.json as any).layers.map((layer: any) => layer.name).sort();
+    assert.deepEqual(afterDryRunNames, ["Hero", "Title"]);
+
+    const failingApply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("failing-abort.json")]);
+    assertSuccess(failingApply, "op apply failing-abort");
+
+    const failingJson = failingApply.json as any;
+    assert.equal(failingJson.result.transactionId, "failing-abort-001");
+    assert.equal(failingJson.result.applied, 0);
+    assert.equal((failingJson.result.failures ?? []).length, 1);
+    assert.equal((failingJson.result.results ?? []).length, 1);
+
+    const afterFailure = await harness.runJson(["layer", "list"]);
+    assertSuccess(afterFailure, "layer list after failing-abort");
+    const afterFailureNames = (afterFailure.json as any).layers.map((layer: any) => layer.name).sort();
+    assert.deepEqual(afterFailureNames, ["Hero", "Title"], "abort behavior should prevent second deleteLayer from running");
+  });
+});
+
+test("agent controls payload validates refs + onError continue/abort + rollbackOnError + checkpoints", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const apply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("agent-controls.json"), "--checkpoint"]);
+    assertSuccess(apply, "op apply agent-controls --checkpoint");
+
+    const applyJson = apply.json as any;
+    assert.equal(applyJson.result.transactionId, "agent-controls-001");
+    assert.equal(applyJson.result.applied, 2);
+    assert.equal((applyJson.result.failures ?? []).length, 2);
+    assert.equal(applyJson.result.rolledBack, true);
+    assert.ok(applyJson.result.refs.agentLayer, "expected ref assignment for agentLayer");
+    assert.equal(typeof applyJson.checkpointId, "string");
+
+    const manifest = await harness.runJson(["doc", "manifest"]);
+    assertSuccess(manifest, "doc manifest after rollback");
+
+    const manifestLayers = (manifest.json as any).layers;
+    const hasAgentLayer = manifestLayers.some((layer: any) => /Agent Ref Layer/.test(layer.name));
+    assert.equal(hasAgentLayer, false, "rollback should remove agent-created layer");
+
+    const titleLayer = manifestLayers.find((layer: any) => layer.name === "Title");
+    assert.ok(titleLayer, "Title layer should exist after rollback");
+    assert.equal(titleLayer.text.content, "Hello World");
+
+    const checkpointId = applyJson.checkpointId as string;
+    const restore = await harness.runJson(["checkpoint", "restore", checkpointId]);
+    assertSuccess(restore, "checkpoint restore");
+
+    const restoreJson = restore.json as any;
+    assert.equal(restoreJson.checkpointId, checkpointId);
+    assert.equal(restoreJson.restored, true);
+  });
+});

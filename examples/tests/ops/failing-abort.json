@@ -1,0 +1,23 @@
+{
+  "transactionId": "failing-abort-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Missing Layer"
+      }
+    },
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Hero"
+      }
+    }
+  ],
+  "safety": {
+    "dryRun": false
+  }
+}

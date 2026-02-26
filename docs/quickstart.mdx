@@ -1,0 +1,47 @@
+---
+title: "Quickstart"
+description: "Install dependencies, run the bridge, connect Photoshop, and execute first operations."
+---
+
+## Prerequisites
+
+- Node.js 20+ and npm
+- Adobe Photoshop 24+
+- UXP Developer Tool
+
+## Install and build
+
+```bash
+npm install
+npm run build
+```
+
+## Start bridge daemon
+
+```bash
+npm run dev -- bridge daemon
+```
+
+Default endpoint is `http://127.0.0.1:43120`.
+
+## Load the UXP panel in Photoshop
+
+1. Open UXP Developer Tool.
+2. Add the `photoshop-uxp-bridge/` folder as a plugin.
+3. Load the plugin.
+4. In Photoshop, open the `PSAgent Bridge` panel.
+5. Click `Connect Bridge`.
+
+## Run first commands
+
+```bash
+npm run dev -- session start --mode desktop
+npm run dev -- doc open ./examples/tests/input.psd
+npm run dev -- layer list
+npm run dev -- op apply -f examples/ops.cleanup.sample.json --checkpoint
+npm run dev -- render --format png --out ./out/mock.png
+npm run dev -- doctor
+```
+
+Next: [local environment](/setup/local-environment).
+For full agent bootstrap (CLI + MCP + UXP + skill): [agent bootstrap and skill install](/setup/agent-bootstrap-and-skill).

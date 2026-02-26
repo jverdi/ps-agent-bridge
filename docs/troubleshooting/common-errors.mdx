@@ -1,0 +1,73 @@
+---
+title: "Common errors"
+description: "Diagnose frequent Photoshop and bridge runtime failures."
+---
+
+## `Permission denied to http://127.0.0.1:43120`
+
+Likely causes:
+
+- Plugin was not reloaded after manifest permission update.
+- UXP panel is stale and not connected.
+
+Fix:
+
+1. Reload plugin in UXP Developer Tool.
+2. Reopen panel and connect bridge.
+3. Confirm with `psagent bridge status`.
+
+## `Manifest entry not found`
+
+Plugin bundle is out of sync with UXP loader state.
+
+Fix:
+
+- Remove and re-add plugin folder in UXP Developer Tool.
+- Reload plugin and reconnect.
+
+## `Could not complete your request because of a program error`
+
+Generic Photoshop error, usually from host state mismatch (active tool mode, missing target, unsupported descriptor in current state).
+
+Fix:
+
+- Exit text-edit/transform/modal dialogs.
+- Retry operation.
+- Check panel transaction log for failing op index.
+
+## `The command “Delete” is not currently available` or `The command “Make” is not currently available`
+
+Action Manager command attempted in invalid state or without valid target.
+
+Fix:
+
+- Verify target layer/document exists.
+- Ensure active document is valid and unlocked for mutation.
+- Prefer canonical high-level ops before raw `batchPlay` descriptors.
+
+## `One or more selections cannot be exported because they are empty`
+
+Export path expects an active non-empty selection.
+
+Fix:
+
+- Use document export (`exportDocument`) instead of selection export path when selection is optional.
+- Set/verify selection before layer export flows.
+
+## Save dialog blocks and timeouts
+
+A hidden Save As dialog can stall automation.
+
+Fix:
+
+- Prefer `saveDocumentAs` with explicit `output`.
+- Avoid `saveDocument` on unsaved docs unless dialog flow is intentional.
+
+## Modal state busy failures
+
+If Photoshop is in modal state, bridge retries internally and then fails with a clear message.
+
+Fix:
+
+- Exit modal workflows and retry.
+- Keep operation transactions smaller when debugging.

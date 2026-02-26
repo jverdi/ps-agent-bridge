@@ -1,0 +1,43 @@
+{
+  "transactionId": "agent-controls-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "createLayer",
+      "name": "Agent Ref Layer",
+      "ref": "agentLayer"
+    },
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Missing Layer"
+      },
+      "onError": "continue"
+    },
+    {
+      "op": "renameLayer",
+      "target": "$agentLayer",
+      "name": "Agent Ref Layer Renamed"
+    },
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Missing Layer 2"
+      },
+      "onError": "abort"
+    },
+    {
+      "op": "setText",
+      "target": {
+        "layerName": "Title"
+      },
+      "text": "ShouldNotApply"
+    }
+  ],
+  "safety": {
+    "dryRun": false,
+    "rollbackOnError": true
+  }
+}

@@ -1,0 +1,70 @@
+---
+title: "Operation envelope"
+description: "Payload schema, reference resolution, and error/rollback controls for applyOps."
+---
+
+## Envelope shape
+
+```json
+{
+  "transactionId": "tx-001",
+  "doc": { "ref": "active" },
+  "refs": {
+    "hero": "layer_123"
+  },
+  "ops": [
+    { "op": "createLayer", "name": "Draft", "ref": "draftLayer" },
+    { "op": "renameLayer", "target": "$draftLayer", "name": "Draft v2" }
+  ],
+  "safety": {
+    "dryRun": false,
+    "checkpoint": false,
+    "rollbackOnError": false,
+    "onError": "abort"
+  }
+}
+```
+
+## Agent-oriented controls
+
+### Op-local refs
+
+You can assign refs on operations with any of:
+
+- `ref`
+- `refId`
+- `as`
+- `outputRef`
+- `storeAs`
+- `idRef`
+
+Later operations resolve `$name` and `$name.path`.
+
+### Error policy
+
+- Global default: `safety.onError` (`abort` or `continue`)
+- Per-op override: `op.onError`
+
+### Rollback
+
+`safety.rollbackOnError = true` enables best-effort rollback with history snapshot/pointer strategy. Result payload includes rollback metadata.
+
+## Result shape highlights
+
+`applyOps` returns structured execution details:
+
+- `transactionId`
+- `applied`
+- `failed`
+- `aborted`
+- `opResults[]`
+- `failures[]`
+- `refs`
+- `rolledBack`
+- `rollback`
+
+## Validation notes
+
+- Envelope schema is defined in `psagent/src/core/op-schema.ts`.
+- Unknown operation names fail in the bridge resolver.
+- Some operations are schema-loose (`additionalProperties: true`) to allow Photoshop-specific option maps.

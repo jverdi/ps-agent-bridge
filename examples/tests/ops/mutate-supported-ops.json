@@ -1,0 +1,24 @@
+{
+  "transactionId": "mutate-supported-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "setText",
+      "target": {
+        "layerName": "Title"
+      },
+      "text": "Integration Title"
+    },
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Hero"
+      }
+    }
+  ],
+  "safety": {
+    "dryRun": false
+  }
+}

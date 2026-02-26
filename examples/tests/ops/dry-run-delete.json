@@ -1,0 +1,17 @@
+{
+  "transactionId": "dry-run-delete-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "deleteLayer",
+      "target": {
+        "layerName": "Hero"
+      }
+    }
+  ],
+  "safety": {
+    "dryRun": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "transactionId": "demo-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "setText",
+      "target": {
+        "layerName": "Title"
+      },
+      "text": "Launch Day"
+    },
+    {
+      "op": "replaceSmartObject",
+      "target": {
+        "layerName": "Hero"
+      },
+      "input": "https://example.com/hero.png"
+    },
+    {
+      "op": "export",
+      "format": "png",
+      "output": "./out/hero.png"
+    }
+  ],
+  "safety": {
+    "dryRun": false,
+    "checkpoint": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "PSAgent Bridge",
+  "theme": "mint",
+  "colors": {
+    "primary": "#2F6DC8",
+    "light": "#5E90DD",
+    "dark": "#214F95"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start here",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Setup",
+        "pages": [
+          "setup/local-environment",
+          "setup/photoshop-uxp-bridge",
+          "setup/agent-bootstrap-and-skill"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/cli-reference",
+          "reference/operation-envelope",
+          "reference/operation-catalog",
+          "reference/rpc-and-mcp"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/real-world-workflows",
+          "guides/testing-and-validation"
+        ]
+      },
+      {
+        "group": "Troubleshooting",
+        "pages": [
+          "troubleshooting/common-errors"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "transactionId": "real-world-instagram-reels-beach-coffee-3-variants-pass2-001",
+  "doc": { "ref": "active" },
+  "ops": [
+    { "op": "createDocument", "name": "Reel Ad V1B - Sunrise Cold Brew", "width": 1080, "height": 1920, "resolution": 72 },
+    { "op": "placeAsset", "input": "https://as1.ftcdn.net/jpg/01/43/00/52/1000_F_143005208_DrhUC1OCjuxolR27yq57zfav3rTaMqNQ.jpg", "name": "V1B Hero" },
+    { "op": "transformLayer", "target": { "layerName": "V1B Hero" }, "scaleX": 215, "scaleY": 215, "x": 0, "y": -120 },
+    { "op": "createAdjustmentLayer", "adjustment": "levels", "name": "V1B Levels" },
+    { "op": "setLayerProps", "target": { "layerName": "V1B Levels" }, "opacity": 64 },
+    { "op": "createAdjustmentLayer", "adjustment": "hue-sat", "name": "V1B Hue" },
+    { "op": "setLayerProps", "target": { "layerName": "V1B Hue" }, "opacity": 24 },
+    { "op": "createShapeLayer", "name": "V1B Bottom Shade", "x": 0, "y": 1080, "width": 1080, "height": 840, "fill": "#07121A" },
+    { "op": "setLayerProps", "target": { "layerName": "V1B Bottom Shade" }, "opacity": 62 },
+    { "op": "createShapeLayer", "name": "V1B CTA Bg", "x": 84, "y": 1600, "width": 430, "height": 122, "fill": "#FF8A3D" },
+
+    { "op": "createTextLayer", "name": "V1B Brand", "text": "Tide & Bean Beach Cafe", "fontSize": 46, "position": { "x": 84, "y": 132 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V1B Brand" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V1B Hook", "text": "SUNRISE\nCOLD BREW", "fontSize": 100, "position": { "x": 84, "y": 1290 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V1B Hook" }, "fontName": "Avenir Next Bold" },
+
+    { "op": "createTextLayer", "name": "V1B Body", "text": "Coconut foam + sea-salt caramel.\n2-for-1 until 10 AM.", "fontSize": 40, "position": { "x": 84, "y": 1490 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V1B Body" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "createTextLayer", "name": "V1B CTA Text", "text": "Order in 2 taps", "fontSize": 46, "position": { "x": 120, "y": 1678 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V1B CTA Text" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V1B Stock Credit", "text": "Image preview: Adobe Stock", "fontSize": 20, "position": { "x": 84, "y": 1860 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V1B Stock Credit" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "exportDocument", "format": "png", "output": "/tmp/reel-v1b-sunrise-coldbrew.png" },
+
+
+    { "op": "createDocument", "name": "Reel Ad V2B - Beach Latte Boost", "width": 1080, "height": 1920, "resolution": 72 },
+    { "op": "placeAsset", "input": "https://as1.ftcdn.net/jpg/01/00/07/80/1000_F_100078028_QEZd1sH8WDEF8oGSzetEZG7BuUEblmJ1.jpg", "name": "V2B Hero" },
+    { "op": "transformLayer", "target": { "layerName": "V2B Hero" }, "scaleX": 225, "scaleY": 225, "x": 30, "y": -90 },
+    { "op": "createAdjustmentLayer", "adjustment": "curves", "name": "V2B Curves" },
+    { "op": "setLayerProps", "target": { "layerName": "V2B Curves" }, "opacity": 60 },
+    { "op": "createAdjustmentLayer", "adjustment": "levels", "name": "V2B Levels" },
+    { "op": "setLayerProps", "target": { "layerName": "V2B Levels" }, "opacity": 28 },
+    { "op": "createShapeLayer", "name": "V2B Left Shade", "x": 0, "y": 0, "width": 630, "height": 1920, "fill": "#0A2238" },
+    { "op": "setLayerProps", "target": { "layerName": "V2B Left Shade" }, "opacity": 56 },
+    { "op": "createShapeLayer", "name": "V2B CTA Bg", "x": 84, "y": 1585, "width": 460, "height": 122, "fill": "#00C2A8" },
+
+    { "op": "createTextLayer", "name": "V2B Brand", "text": "Tide & Bean", "fontSize": 56, "position": { "x": 84, "y": 160 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V2B Brand" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V2B Hook", "text": "BEAT THE HEAT\nIN 3 SIPS", "fontSize": 88, "position": { "x": 84, "y": 560 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V2B Hook" }, "fontName": "Avenir Next Bold" },
+
+    { "op": "createTextLayer", "name": "V2B Body", "text": "Beach Latte Boost:\nEspresso + citrus cold foam.", "fontSize": 38, "position": { "x": 84, "y": 1215 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V2B Body" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "createTextLayer", "name": "V2B CTA Text", "text": "Swipe up for pickup", "fontSize": 44, "position": { "x": 118, "y": 1668 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V2B CTA Text" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V2B Stock Credit", "text": "Image preview: Adobe Stock", "fontSize": 20, "position": { "x": 84, "y": 1860 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V2B Stock Credit" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "exportDocument", "format": "png", "output": "/tmp/reel-v2b-beach-latte-boost.png" },
+
+
+    { "op": "createDocument", "name": "Reel Ad V3B - Sunset Espresso Tonic", "width": 1080, "height": 1920, "resolution": 72 },
+    { "op": "placeAsset", "input": "https://as2.ftcdn.net/jpg/11/45/38/39/1000_F_1145383991_aZLCaRqAB44QrUSzJmm8NbCjcJXmXgFd.jpg", "name": "V3B Hero" },
+    { "op": "transformLayer", "target": { "layerName": "V3B Hero" }, "scaleX": 205, "scaleY": 205, "x": 20, "y": -130 },
+    { "op": "createAdjustmentLayer", "adjustment": "hue-sat", "name": "V3B Hue" },
+    { "op": "setLayerProps", "target": { "layerName": "V3B Hue" }, "opacity": 42 },
+    { "op": "createAdjustmentLayer", "adjustment": "levels", "name": "V3B Levels" },
+    { "op": "setLayerProps", "target": { "layerName": "V3B Levels" }, "opacity": 36 },
+    { "op": "createShapeLayer", "name": "V3B Card", "x": 56, "y": 1110, "width": 968, "height": 720, "fill": "#F2DDC6" },
+    { "op": "setLayerProps", "target": { "layerName": "V3B Card" }, "opacity": 92 },
+    { "op": "createShapeLayer", "name": "V3B CTA Bg", "x": 116, "y": 1600, "width": 430, "height": 122, "fill": "#1E4E3D" },
+
+    { "op": "createTextLayer", "name": "V3B Brand", "text": "Tide & Bean Beach Cafe", "fontSize": 44, "position": { "x": 116, "y": 1260 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V3B Brand" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V3B Hook", "text": "SUNSET\nESPRESSO TONIC", "fontSize": 82, "position": { "x": 116, "y": 1430 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V3B Hook" }, "fontName": "Avenir Next Bold" },
+
+    { "op": "createTextLayer", "name": "V3B Body", "text": "Sparkling citrus + double-shot espresso.\nWeekend drop only.", "fontSize": 36, "position": { "x": 116, "y": 1570 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V3B Body" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "createTextLayer", "name": "V3B CTA Text", "text": "Tap to reserve", "fontSize": 46, "position": { "x": 152, "y": 1680 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V3B CTA Text" }, "fontName": "Avenir Next Demi Bold" },
+
+    { "op": "createTextLayer", "name": "V3B Stock Credit", "text": "Image preview: Adobe Stock", "fontSize": 20, "position": { "x": 116, "y": 1810 } },
+    { "op": "setTextStyle", "onError": "continue", "target": { "layerName": "V3B Stock Credit" }, "fontName": "Avenir Next Regular" },
+
+    { "op": "exportDocument", "format": "png", "output": "/tmp/reel-v3b-sunset-espresso-tonic.png" }
+  ],
+  "safety": { "dryRun": false, "onError": "abort" }
+}

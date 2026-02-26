@@ -1,0 +1,44 @@
+---
+title: "RPC and MCP surfaces"
+description: "Bridge daemon endpoints, RPC methods, and MCP tool mapping."
+---
+
+## Bridge daemon HTTP endpoints
+
+From `psagent/src/bridge/daemon.ts`:
+
+- `POST /rpc`: CLI adapter JSON-RPC entrypoint.
+- `POST /bridge/register`: UXP client registration.
+- `POST /bridge/poll`: UXP long-poll for queued requests.
+- `POST /bridge/result`: UXP returns request results/errors.
+- `GET /bridge/status`: active client + queue + recent events.
+
+## RPC methods used by desktop adapter
+
+- `health`
+- `doc.open`
+- `doc.manifest`
+- `layer.list`
+- `ops.apply`
+- `render`
+- `checkpoint.create`
+- `checkpoint.list`
+- `checkpoint.restore`
+- `events.tail`
+
+## MCP tools (`psagent mcp-serve`)
+
+| Tool | Description |
+| --- | --- |
+| `photoshop_capabilities` | Return adapter mode and capability map |
+| `photoshop_open_document` | Open by local path or URL |
+| `photoshop_get_manifest` | Return document manifest |
+| `photoshop_query_layers` | List layers, optional regex filter |
+| `photoshop_apply_ops` | Apply operation envelope payload |
+| `photoshop_render` | Export active doc to png/jpg |
+| `photoshop_checkpoint_restore` | Restore checkpoint by id |
+| `photoshop_events_tail` | Fetch recent adapter events |
+
+## Transport notes
+
+- `psagent mcp-serve` uses JSON-RPC over stdio.

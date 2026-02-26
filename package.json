@@ -1,0 +1,31 @@
+{
+  "name": "cccli-psagent-scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Photoshop agent CLI scaffold with desktop and cloud adapters",
+  "bin": {
+    "psagent": "dist/psagent/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx psagent/src/cli.ts",
+    "test:integration": "tsx --test tests/integration/**/*.test.ts",
+    "start": "node dist/psagent/src/cli.js",
+    "mcp": "node dist/psagent/src/mcp/server.js",
+    "bridge:reload": "bash scripts/dev/reload-psagent-bridge.sh",
+    "bridge:hotreload": "node scripts/dev/hot-reload-server.mjs",
+    "skill:install": "bash scripts/dev/install-psagent-skill.sh",
+    "verify:photoshop-live": "bash scripts/dev/verify-photoshop-live.sh"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

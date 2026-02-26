@@ -1,0 +1,265 @@
+{
+  "transactionId": "planned-capabilities-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "createDocument",
+      "name": "Integration Spec Doc",
+      "width": 1024,
+      "height": 768,
+      "ref": "docA"
+    },
+    {
+      "op": "saveDocument"
+    },
+    {
+      "op": "saveDocumentAs",
+      "output": "./tmp/integration.psd"
+    },
+    {
+      "op": "duplicateDocument",
+      "name": "Integration Spec Copy",
+      "ref": "docCopy"
+    },
+    {
+      "op": "createLayer",
+      "name": "Layer A",
+      "ref": "layerA"
+    },
+    {
+      "op": "duplicateLayer",
+      "target": "$layerA",
+      "name": "Layer A Copy",
+      "ref": "layerACopy"
+    },
+    {
+      "op": "moveLayer",
+      "target": "$layerACopy",
+      "at": 0
+    },
+    {
+      "op": "setLayerProps",
+      "target": "$layerACopy",
+      "visible": true,
+      "opacity": 85,
+      "blendMode": "multiply"
+    },
+    {
+      "op": "groupLayers",
+      "targets": [
+        "$layerA",
+        "$layerACopy"
+      ],
+      "name": "Group A",
+      "ref": "groupA"
+    },
+    {
+      "op": "ungroupLayer",
+      "target": "$groupA"
+    },
+    {
+      "op": "mergeLayers",
+      "targets": [
+        "$layerA",
+        "$layerACopy"
+      ],
+      "name": "Merged A",
+      "ref": "mergedA"
+    },
+    {
+      "op": "selectLayers",
+      "targets": [
+        "$mergedA"
+      ],
+      "mode": "set"
+    },
+    {
+      "op": "renameLayer",
+      "target": "$mergedA",
+      "name": "Merged Renamed"
+    },
+    {
+      "op": "transformLayer",
+      "target": {
+        "layerName": "Merged Renamed"
+      },
+      "scaleX": 110,
+      "scaleY": 110,
+      "rotate": 5
+    },
+    {
+      "op": "alignLayers",
+      "targets": [
+        {
+          "layerName": "Merged Renamed"
+        },
+        {
+          "layerName": "Title"
+        }
+      ],
+      "axis": "horizontalCenter"
+    },
+    {
+      "op": "distributeLayers",
+      "targets": [
+        {
+          "layerName": "Merged Renamed"
+        },
+        {
+          "layerName": "Title"
+        }
+      ],
+      "axis": "horizontal"
+    },
+    {
+      "op": "resizeCanvas",
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "op": "resizeImage",
+      "width": 1200,
+      "height": 675
+    },
+    {
+      "op": "cropDocument",
+      "left": 0,
+      "top": 0,
+      "right": 1200,
+      "bottom": 675
+    },
+    {
+      "op": "placeAsset",
+      "input": "https://picsum.photos/seed/psagent-asset/1200/675.jpg",
+      "name": "Placed Hero",
+      "ref": "placedHero"
+    },
+    {
+      "op": "convertToSmartObject",
+      "target": "$placedHero"
+    },
+    {
+      "op": "replaceSmartObject",
+      "target": "$placedHero",
+      "input": "https://picsum.photos/seed/psagent-replace/1200/675.jpg"
+    },
+    {
+      "op": "relinkSmartObject",
+      "target": "$placedHero",
+      "input": "https://picsum.photos/seed/psagent-relink/1200/675.jpg"
+    },
+    {
+      "op": "createAdjustmentLayer",
+      "adjustment": "levels",
+      "ref": "adjust1"
+    },
+    {
+      "op": "applyFilter",
+      "target": "$placedHero",
+      "filter": "gaussianBlur",
+      "radius": 4
+    },
+    {
+      "op": "addLayerMask",
+      "target": "$placedHero"
+    },
+    {
+      "op": "removeLayerMask",
+      "target": "$placedHero"
+    },
+    {
+      "op": "addLayerMask",
+      "target": "$placedHero"
+    },
+    {
+      "op": "applyLayerMask",
+      "target": "$placedHero"
+    },
+    {
+      "op": "setSelection",
+      "shape": "rect",
+      "x": 10,
+      "y": 10,
+      "width": 200,
+      "height": 120
+    },
+    {
+      "op": "modifySelection",
+      "mode": "expand",
+      "by": 5
+    },
+    {
+      "op": "invertSelection"
+    },
+    {
+      "op": "createShapeLayer",
+      "name": "Badge",
+      "shape": "ellipse",
+      "x": 24,
+      "y": 24,
+      "width": 80,
+      "height": 80,
+      "ref": "badge"
+    },
+    {
+      "op": "createTextLayer",
+      "name": "CTA",
+      "text": "Ship it",
+      "ref": "ctaText"
+    },
+    {
+      "op": "setText",
+      "target": "$ctaText",
+      "text": "Integration"
+    },
+    {
+      "op": "setTextStyle",
+      "target": "$ctaText",
+      "fontSize": 42,
+      "font": "Helvetica Neue"
+    },
+    {
+      "op": "exportDocument",
+      "format": "png",
+      "output": "./tmp/full-doc.png"
+    },
+    {
+      "op": "exportLayer",
+      "target": "$placedHero",
+      "format": "png",
+      "output": "./tmp/hero-layer.png"
+    },
+    {
+      "op": "exportLayersByName",
+      "match": "^(Title|Placed Hero)$",
+      "format": "png",
+      "outputDir": "./tmp/layers"
+    },
+    {
+      "op": "batchPlay",
+      "commands": [
+        {
+          "_obj": "noop"
+        }
+      ]
+    },
+    {
+      "op": "deleteLayer",
+      "target": "$badge"
+    },
+    {
+      "op": "flattenImage",
+      "name": "Flattened Final",
+      "ref": "flat"
+    },
+    {
+      "op": "closeDocument",
+      "save": false
+    }
+  ],
+  "safety": {
+    "dryRun": false
+  }
+}
