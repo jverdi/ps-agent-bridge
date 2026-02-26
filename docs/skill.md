@@ -1,8 +1,11 @@
 ---
 name: ps-agent-bridge
-description: Use PS Agent Bridge for Photoshop automation with the npm CLI and Photoshop plugin
+description: Use PS Agent Bridge to automate Photoshop workflows from CLI tools and coding agents.
+license: MIT
+compatibility: Requires Adobe Photoshop 24+, the PS Agent Bridge plugin, and Node.js 20+.
 metadata:
-  short-description: Photoshop automation for end users
+  author: jverdi
+  version: "1.0"
 ---
 
 # PS Agent Bridge Skill

@@ -20,8 +20,7 @@
         "group": "Setup",
         "pages": [
           "setup/local-environment",
-          "setup/photoshop-uxp-bridge",
-          "setup/agent-bootstrap-and-skill"
+          "setup/photoshop-uxp-bridge"
         ]
       },
       {

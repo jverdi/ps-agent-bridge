@@ -1,38 +1,42 @@
 ---
-title: "PS Agent Bridge overview"
-description: "Architecture and responsibilities for the CLI, bridge daemon, UXP plugin, and MCP server."
+title: "Overview"
+description: "A friendly introduction to PS Agent Bridge and how it works with coding agents."
 ---
 
-PS Agent Bridge is a local automation stack for Photoshop. It gives agents and humans a stable command surface, operation payload schema, and runtime bridge between CLI workflows and Photoshop UXP APIs.
+PS Agent Bridge helps you automate Photoshop from the command line or through a coding agent like Codex or Claude Code.
 
-## Components
+Instead of repeating manual edits in Photoshop, you can describe what you want, run clear commands, and get consistent outputs.
 
-- `psagent` CLI: user-facing command surface for sessions, documents, layers, operations, render, checkpoints, and diagnostics.
-- Bridge daemon (`psagent bridge daemon`): local HTTP process that brokers RPC calls between CLI and the connected UXP panel.
-- UXP panel plugin (`photoshop-uxp-bridge/`): executes operations inside Photoshop and reports structured results.
-- MCP server (`psagent mcp-serve`): exposes a focused tool set for agent clients.
-- Integration tests (`tests/integration`): exercise end-to-end CLI -> adapter -> bridge path.
+## The pieces at a glance
 
-## Runtime architecture
+- `PS Agent Bridge` Photoshop panel: connects Photoshop to automation.
+- Bridge daemon (`psagent bridge daemon`): local service that relays commands to the panel.
+- `psagent` CLI: run commands directly yourself.
+- Skill (`/skill.md`): gives coding agents clear instructions for using PS Agent Bridge safely.
 
-```mermaid
-flowchart LR
-  CLI["psagent CLI"] -->|"POST /rpc"| DAEMON["Bridge daemon\n127.0.0.1:43120"]
-  DAEMON -->|"/bridge/poll"| UXP["Photoshop UXP panel"]
-  UXP -->|"Photoshop DOM + batchPlay"| PS["Photoshop"]
-  UXP -->|"/bridge/result"| DAEMON
-  MCP["psagent mcp-serve"] --> ADAPTER["Desktop adapter"]
-  ADAPTER --> DAEMON
+## What you can do with it
+
+- Apply repeatable layer and text changes across files.
+- Build predictable creative workflows for exports and handoff.
+- Let an agent orchestrate steps while Photoshop stays local on your machine.
+
+## Use with Codex or Claude Code
+
+1. Add the skill:
+
+```bash
+npx skills add https://ps-agent-bridge.jaredverdi.com
 ```
 
-## What this stack is optimized for
+2. Install the CLI and start the daemon:
 
-- Agent-oriented operation execution with refs, per-op error policy, and rollback options.
-- Reproducible CLI workflows for local development and integration testing.
-- Programmatic document and layer operations in real Photoshop.
+```bash
+npm install -g @jverdi/ps-agent-bridge
+psagent bridge daemon
+```
 
-## What is intentionally scaffolded
+3. Open Photoshop, install the `PS Agent Bridge` plugin, and connect to the daemon in it's panel.
 
-- Some Photoshop actions still rely on Action Manager descriptors and vary by host state/version.
+4. Ask your agent to run PS Agent Bridge tasks.
 
 Continue with [quickstart](/quickstart) for first-run setup.
