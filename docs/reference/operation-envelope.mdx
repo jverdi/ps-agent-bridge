@@ -20,7 +20,8 @@ description: "Payload schema, reference resolution, and error/rollback controls 
     "dryRun": false,
     "checkpoint": false,
     "rollbackOnError": false,
-    "onError": "abort"
+    "onError": "abort",
+    "opDelayMs": 120
   }
 }
 ```
@@ -48,6 +49,13 @@ Later operations resolve `$name` and `$name.path`.
 ### Rollback
 
 `safety.rollbackOnError = true` enables best-effort rollback with history snapshot/pointer strategy. Result payload includes rollback metadata.
+
+### Rate limiting / pacing
+
+`safety.opDelayMs` inserts a delay (milliseconds) between operations inside one `op apply` transaction. Use this when Photoshop is unstable under rapid operation bursts.
+
+- Allowed range: `0` to `60000`
+- `0` (default) means no artificial delay
 
 ## Result shape highlights
 

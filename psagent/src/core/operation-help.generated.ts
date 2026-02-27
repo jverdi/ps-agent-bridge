@@ -438,7 +438,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "layer.create"
     ],
     "required": "None",
-    "supportedArgs": "`blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`",
+    "supportedArgs": "`artboard`, `at`, `blendMode`, `container`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`",
     "notes": "",
     "example": "{\n  \"op\": \"createLayer\",\n  \"name\": \"Foreground\"\n}"
   },
@@ -448,7 +448,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "layer.createPixel"
     ],
     "required": "None",
-    "supportedArgs": "`blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`",
+    "supportedArgs": "`artboard`, `at`, `blendMode`, `container`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`",
     "notes": "",
     "example": "{\n  \"op\": \"createPixelLayer\",\n  \"name\": \"Paint\"\n}"
   },
@@ -459,7 +459,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "layer.createGroup"
     ],
     "required": "None",
-    "supportedArgs": "`blendMode`, `docRef`, `fromLayers`, `name`, `opacity`",
+    "supportedArgs": "`artboard`, `at`, `blendMode`, `container`, `docRef`, `fromLayers`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`",
     "notes": "",
     "example": "{\n  \"op\": \"createGroup\",\n  \"name\": \"Hero Group\"\n}"
   },
@@ -743,8 +743,8 @@ export const GENERATED_OPERATION_ENTRIES = [
       "artboard.reorder"
     ],
     "required": "`target/artboard`, plus one of `at`, `relativeTo+placement`, `to(front/back)`",
-    "supportedArgs": "`artboard`, `artboardId`, `artboardName`, `at`, `by`, `parent`, `placement`, `relativeTo`, `target`, `to`",
-    "notes": "",
+    "supportedArgs": "`artboard`, `artboardId`, `artboardName`, `at`, `index`, `placement`, `relativeTo`, `target`, `to`",
+    "notes": "`by` and `parent` are not supported for artboard reordering. Both `target` and optional `relativeTo` must resolve to artboards.",
     "example": "{\n  \"op\": \"reorderArtboards\",\n  \"target\": {\n    \"layerName\": \"Mobile\"\n  },\n  \"to\": \"front\"\n}"
   },
   {
@@ -754,7 +754,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`outputDir` (or `commands[]/command/descriptor`)",
     "supportedArgs": "`command`, `commands`, `descriptor`, `format`, `options`, `outputDir`",
-    "notes": "Without explicit descriptors, this op uses a safe fallback export path; pass descriptor(s) for host-specific per-artboard export behavior.",
+    "notes": "Without explicit descriptors, this op exports each detected artboard to `outputDir` using per-artboard crop bounds. It errors when no artboards are present.",
     "example": "{\n  \"op\": \"exportArtboards\",\n  \"outputDir\": \"./tmp/artboards\",\n  \"format\": \"png\"\n}"
   },
   {
@@ -863,7 +863,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "asset.place"
     ],
     "required": "`input (or path/source)`",
-    "supportedArgs": "`input`, `linked`, `name`, `normalizePixels`, `path`, `source`, `transformOptions`",
+    "supportedArgs": "`artboard`, `at`, `container`, `input`, `linked`, `name`, `normalizePixels`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `path`, `placement`, `source`, `targetParent`, `transformOptions`",
     "notes": "",
     "example": "{\n  \"op\": \"placeAsset\",\n  \"input\": \"https://picsum.photos/seed/hero/1080/1080.jpg\",\n  \"name\": \"Hero Image\"\n}"
   },
@@ -1341,7 +1341,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`path`, `pathId`, `pathName`, `target`",
-    "notes": "",
+    "notes": "Pass `path/pathName/pathId`, or ensure an existing Work Path is present. The bridge preflights path existence and returns actionable errors before applying.",
     "example": "{\n  \"op\": \"createVectorMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  },\n  \"path\": \"Subject Path\"\n}"
   },
   {
@@ -1361,7 +1361,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "adjustment.create"
     ],
     "required": "None (`levels` default when omitted)",
-    "supportedArgs": "`adjustment`, `kind`, `name`, `settings`, `type`, plus adjustment fields",
+    "supportedArgs": "`adjustment`, `artboard`, `at`, `container`, `kind`, `name`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `settings`, `targetParent`, `type`, plus adjustment fields",
     "notes": "Pass either (a) `type`/`kind` + settings fields, (b) `adjustment` as a plain object (`{ \"brightness\": 10, ... }`), or (c) `adjustment` as a raw descriptor with `_obj`.",
     "example": "{\n  \"op\": \"createAdjustmentLayer\",\n  \"type\": \"brightnessContrast\",\n  \"adjustment\": {\n    \"brightness\": 8,\n    \"contrast\": 12\n  },\n  \"name\": \"Grade\"\n}"
   },
@@ -1523,8 +1523,8 @@ export const GENERATED_OPERATION_ENTRIES = [
       "contentAware.scale"
     ],
     "required": "`target (or active layer)`",
-    "supportedArgs": "`descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`",
-    "notes": "",
+    "supportedArgs": "`allowMaskedLayer`, `descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`",
+    "notes": "By default, masked targets are blocked up front because Photoshop frequently rejects Content-Aware Scale on masked layers. Set `allowMaskedLayer: true` for best-effort attempts.",
     "example": "{\n  \"op\": \"contentAwareScale\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"scaleX\": 95,\n  \"scaleY\": 95\n}"
   },
   {
@@ -1543,7 +1543,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "text.create"
     ],
     "required": "`text (or contents)`",
-    "supportedArgs": "`alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`",
+    "supportedArgs": "`alignment`, `align`, `artboard`, `at`, `avoidOverlapWith`, `color`, `container`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `position`, `targetParent`, `text`, `textColor`",
     "notes": "`position.y` is the text baseline, not the top of glyph bounds. For large display text, place the baseline lower than the desired visual top. `createTextLayer` already accepts style/fitting args; use `setTextStyle` for post-create updates.",
     "example": "{\n  \"op\": \"createTextLayer\",\n  \"name\": \"Headline\",\n  \"text\": \"Summer Launch\",\n  \"fontSize\": 72,\n  \"textColor\": \"#ffffff\",\n  \"alignment\": \"center\",\n  \"position\": {\n    \"x\": 0,\n    \"y\": 220\n  },\n  \"maxWidth\": 1080\n}"
   },
@@ -1593,7 +1593,7 @@ export const GENERATED_OPERATION_ENTRIES = [
       "shape.create"
     ],
     "required": "`bounds or x/y/width/height`",
-    "supportedArgs": "`bounds`, `color`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `radius`, `shape`, `shapeType`, `width`, `x`, `y`",
+    "supportedArgs": "`artboard`, `at`, `bounds`, `color`, `container`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `radius`, `shape`, `shapeType`, `targetParent`, `width`, `x`, `y`",
     "notes": "",
     "example": "{\n  \"op\": \"createShapeLayer\",\n  \"name\": \"CTA Button\",\n  \"shape\": \"rectangle\",\n  \"x\": 88,\n  \"y\": 980,\n  \"width\": 320,\n  \"height\": 92,\n  \"fillType\": \"gradient\",\n  \"cornerRadius\": 46,\n  \"gradient\": {\n    \"from\": \"#22c55e\",\n    \"to\": \"#15803d\",\n    \"angle\": 90\n  }\n}"
   },
@@ -1645,7 +1645,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`outputDir` (or `commands[]/command/descriptor`)",
     "supportedArgs": "`command`, `commands`, `descriptor`, `format`, `options`, `outputDir`",
-    "notes": "For explicit multi-artboard export behavior across Photoshop versions, prefer `descriptor`/`commands`.",
+    "notes": "Default behavior exports each artboard to `outputDir` using per-artboard crop bounds. For host-specific behavior, pass explicit `descriptor`/`commands`.",
     "example": "{\n  \"op\": \"exportArtboards\",\n  \"outputDir\": \"./tmp/artboards\",\n  \"format\": \"png\"\n}"
   },
   {

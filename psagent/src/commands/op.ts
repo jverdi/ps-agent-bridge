@@ -109,20 +109,31 @@ export function registerOpCommands(program: Command): void {
     .option("--doc <ref>", "Document ref override")
     .option("--checkpoint", "Create checkpoint before apply")
     .option("--dry-run", "Do not mutate document")
+    .option("--op-delay-ms <ms>", "Delay between ops within one transaction")
     .action(
       wrapAction(async (...args) => {
         const command = commandFromArgs(args);
-        const options = command.opts<{ file: string; doc?: string; checkpoint?: boolean; dryRun?: boolean }>();
+        const options = command.opts<{ file: string; doc?: string; checkpoint?: boolean; dryRun?: boolean; opDelayMs?: string }>();
         const runtime = buildRuntime(command);
 
         const source = readFileSync(options.file, "utf8");
         const parsed = JSON.parse(source) as unknown;
         const payload = validateOperationEnvelope(parsed);
 
+        let opDelayMs: number | undefined;
+        if (options.opDelayMs !== undefined) {
+          const parsedDelay = Number(options.opDelayMs);
+          if (!Number.isFinite(parsedDelay) || parsedDelay < 0) {
+            throw new CliError("--op-delay-ms must be a non-negative number", 2);
+          }
+          opDelayMs = Math.max(0, Math.min(60_000, Math.trunc(parsedDelay)));
+        }
+
         payload.doc.ref = options.doc ?? runtime.session?.activeDocument ?? payload.doc.ref;
         payload.safety = {
           ...payload.safety,
-          dryRun: Boolean(payload.safety?.dryRun || options.dryRun || runtime.config.dryRun)
+          dryRun: Boolean(payload.safety?.dryRun || options.dryRun || runtime.config.dryRun),
+          ...(opDelayMs !== undefined ? { opDelayMs } : {})
         };
 
         let checkpointId: string | undefined;

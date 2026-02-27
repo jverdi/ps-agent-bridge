@@ -110,7 +110,8 @@ export const operationEnvelopeSchema = {
         checkpoint: { type: "boolean" },
         rollbackOnError: { type: "boolean" },
         continueOnError: { type: "boolean" },
-        onError: { type: "string", enum: ["abort", "continue"] }
+        onError: { type: "string", enum: ["abort", "continue"] },
+        opDelayMs: { type: "number", minimum: 0, maximum: 60_000 }
       }
     }
   }

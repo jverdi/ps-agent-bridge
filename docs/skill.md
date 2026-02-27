@@ -36,7 +36,7 @@ Reach for this skill when:
 | `psagent bridge status` | Check daemon and UXP connection |
 | `psagent doc open <path>` | Open a Photoshop document |
 | `psagent layer list [--match <regex>]` | List layers in active document |
-| `psagent op apply -f <ops.json> [--checkpoint] [--dry-run]` | Apply operation envelope |
+| `psagent op apply -f <ops.json> [--checkpoint] [--dry-run] [--op-delay-ms <ms>]` | Apply operation envelope |
 | `psagent op -h` | List available operations and quick catalog |
 | `psagent op <command> -h` | Show operation arguments, aliases, and example payload |
 | `psagent render --format png\|jpg --out <path>` | Export active document |
@@ -61,6 +61,7 @@ Use these before writing an `ops` payload:
 - **Photo frame pattern**: place photo layer above a frame shape and apply `createClippingMask` to constrain photo bounds.
 - **Single-transaction pattern**: keep all dependent operations for one document in the same `op apply` call to avoid active-document drift between CLI invocations.
 - **Iterative composition pattern**: render after each logical group (background, photo, text, accents, CTA) and adjust before adding the next group.
+- **Pacing pattern for stability**: when Photoshop is unstable under heavy automation, set `safety.opDelayMs` (or CLI `--op-delay-ms`) to add a short delay between ops (for example `80-200ms`).
 
 ### BatchPlay recipes (high-friction cases)
 

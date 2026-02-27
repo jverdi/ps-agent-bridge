@@ -13,7 +13,8 @@
         "group": "Start here",
         "pages": [
           "start-here/introduction",
-          "start-here/quickstart"
+          "start-here/quickstart",
+          "start-here/demo"
         ]
       },
       {

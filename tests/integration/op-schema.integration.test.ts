@@ -137,3 +137,28 @@ test("validator rejects unknown operation names", () => {
 
   assert.throws(() => validateOperationEnvelope(payload), /Invalid operations payload/u);
 });
+
+test("validator accepts safety.opDelayMs and rejects invalid values", () => {
+  const validPayload = {
+    ...baseEnvelope,
+    transactionId: "schema-sync-004",
+    ops: [{ op: "createLayer", name: "Paced Layer" }],
+    safety: {
+      onError: "abort",
+      opDelayMs: 120
+    }
+  };
+
+  assert.doesNotThrow(() => validateOperationEnvelope(validPayload));
+
+  const invalidPayload = {
+    ...baseEnvelope,
+    transactionId: "schema-sync-005",
+    ops: [{ op: "createLayer", name: "Broken Pace" }],
+    safety: {
+      opDelayMs: -1
+    }
+  };
+
+  assert.throws(() => validateOperationEnvelope(invalidPayload), /Invalid operations payload/u);
+});

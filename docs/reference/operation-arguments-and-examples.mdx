@@ -370,7 +370,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `layer.create`
 - Required: None
-- Supported args: `blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`
+- Supported args: `artboard`, `at`, `blendMode`, `container`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`
 
 ```json
 {
@@ -383,7 +383,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `layer.createPixel`
 - Required: None
-- Supported args: `blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`
+- Supported args: `artboard`, `at`, `blendMode`, `container`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`
 
 ```json
 {
@@ -396,7 +396,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `createLayerGroup`, `layer.createGroup`
 - Required: None
-- Supported args: `blendMode`, `docRef`, `fromLayers`, `name`, `opacity`
+- Supported args: `artboard`, `at`, `blendMode`, `container`, `docRef`, `fromLayers`, `name`, `opacity`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `targetParent`
 
 ```json
 {
@@ -857,7 +857,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `artboard.reorder`
 - Required: `target/artboard`, plus one of `at`, `relativeTo+placement`, `to(front/back)`
-- Supported args: `artboard`, `artboardId`, `artboardName`, `at`, `by`, `parent`, `placement`, `relativeTo`, `target`, `to`
+- Supported args: `artboard`, `artboardId`, `artboardName`, `at`, `index`, `placement`, `relativeTo`, `target`, `to`
+- Notes: `by` and `parent` are not supported for artboard reordering. Both `target` and optional `relativeTo` must resolve to artboards.
 
 ```json
 {
@@ -874,7 +875,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `artboard.export`
 - Required: `outputDir` (or `commands[]/command/descriptor`)
 - Supported args: `command`, `commands`, `descriptor`, `format`, `options`, `outputDir`
-- Notes: Without explicit descriptors, this op uses a safe fallback export path; pass descriptor(s) for host-specific per-artboard export behavior.
+- Notes: Without explicit descriptors, this op exports each detected artboard to `outputDir` using per-artboard crop bounds. It errors when no artboards are present.
 
 ```json
 {
@@ -1084,7 +1085,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `asset.place`
 - Required: `input (or path/source)`
-- Supported args: `input`, `linked`, `name`, `normalizePixels`, `path`, `source`, `transformOptions`
+- Supported args: `artboard`, `at`, `container`, `input`, `linked`, `name`, `normalizePixels`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `path`, `placement`, `source`, `targetParent`, `transformOptions`
 
 ```json
 {
@@ -1790,6 +1791,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `vectorMask.create`, `layerMask.vectorCreate`
 - Required: `target (or active layer)`
 - Supported args: `path`, `pathId`, `pathName`, `target`
+- Notes: Pass `path/pathName/pathId`, or ensure an existing Work Path is present. The bridge preflights path existence and returns actionable errors before applying.
 
 ```json
 {
@@ -1822,7 +1824,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `adjustment.create`
 - Required: None (`levels` default when omitted)
-- Supported args: `adjustment`, `kind`, `name`, `settings`, `type`, plus adjustment fields
+- Supported args: `adjustment`, `artboard`, `at`, `container`, `kind`, `name`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `settings`, `targetParent`, `type`, plus adjustment fields
 - Notes: Pass either (a) `type`/`kind` + settings fields, (b) `adjustment` as a plain object (`{ "brightness": 10, ... }`), or (c) `adjustment` as a raw descriptor with `_obj`.
 
 ```json
@@ -2092,7 +2094,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `contentAware.scale`
 - Required: `target (or active layer)`
-- Supported args: `descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`
+- Supported args: `allowMaskedLayer`, `descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`
+- Notes: By default, masked targets are blocked up front because Photoshop frequently rejects Content-Aware Scale on masked layers. Set `allowMaskedLayer: true` for best-effort attempts.
 
 ```json
 {
@@ -2129,7 +2132,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `text.create`
 - Required: `text (or contents)`
-- Supported args: `alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`
+- Supported args: `alignment`, `align`, `artboard`, `at`, `avoidOverlapWith`, `color`, `container`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `position`, `targetParent`, `text`, `textColor`
 - Notes: `position.y` is the text baseline, not the top of glyph bounds. For large display text, place the baseline lower than the desired visual top. `createTextLayer` already accepts style/fitting args; use `setTextStyle` for post-create updates.
 
 ```json
@@ -2226,7 +2229,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `shape.create`
 - Required: `bounds or x/y/width/height`
-- Supported args: `bounds`, `color`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `radius`, `shape`, `shapeType`, `width`, `x`, `y`
+- Supported args: `artboard`, `at`, `bounds`, `color`, `container`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `parent`, `parentIndex`, `parentLayer`, `parentPlacement`, `placement`, `radius`, `shape`, `shapeType`, `targetParent`, `width`, `x`, `y`
 
 ```json
 {
@@ -2315,7 +2318,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `artboard.export`
 - Required: `outputDir` (or `commands[]/command/descriptor`)
 - Supported args: `command`, `commands`, `descriptor`, `format`, `options`, `outputDir`
-- Notes: For explicit multi-artboard export behavior across Photoshop versions, prefer `descriptor`/`commands`.
+- Notes: Default behavior exports each artboard to `outputDir` using per-artboard crop bounds. For host-specific behavior, pass explicit `descriptor`/`commands`.
 
 ```json
 {

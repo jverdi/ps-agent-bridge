@@ -387,8 +387,8 @@ function orderedLayerIds(doc: DocumentState, parentId?: string): string[] {
     return doc.rootLayerIds;
   }
   const parent = doc.layers[parentId];
-  if (!parent || parent.type !== "group") {
-    throw new Error(`parent layer is not a group: ${parentId}`);
+  if (!parent || (parent.type !== "group" && parent.type !== "artboard")) {
+    throw new Error(`parent layer is not a group/artboard: ${parentId}`);
   }
   if (!parent.children) {
     parent.children = [];
@@ -480,10 +480,20 @@ function resolveParentLayerId(
     return undefined;
   }
   const layer = resolveLayer(doc, parent, refs);
-  if (layer.type !== "group") {
-    throw new Error(`parent layer is not a group: ${layer.id}`);
+  if (layer.type !== "group" && layer.type !== "artboard") {
+    throw new Error(`parent layer is not a group/artboard: ${layer.id}`);
   }
   return layer.id;
+}
+
+function resolveCreateParentTarget(op: Record<string, unknown>): LayerReference | undefined {
+  const parent = op.parent ?? op.parentLayer ?? op.artboard ?? op.container ?? op.targetParent;
+  return parent as LayerReference | undefined;
+}
+
+function resolveCreateInsertIndex(op: Record<string, unknown>): number | undefined {
+  const value = op.parentIndex ?? op.at;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function removeFromParent(doc: DocumentState, layerId: string): void {
@@ -685,6 +695,9 @@ function resolveChannel(doc: DocumentState, target: unknown, refs: Record<string
 }
 
 function normalizePathTarget(target: unknown, refs: Record<string, string>): string {
+  if (typeof target === "number" && Number.isFinite(target)) {
+    return String(target);
+  }
   if (typeof target === "string") {
     const trimmed = target.trim();
     if (!trimmed) {
@@ -704,6 +717,9 @@ function normalizePathTarget(target: unknown, refs: Record<string, string>): str
     const record = target as Record<string, unknown>;
     const pathId = record.pathId ?? record.id;
     const pathName = record.pathName ?? record.name;
+    if (typeof pathId === "number" && Number.isFinite(pathId)) {
+      return String(pathId);
+    }
     if (typeof pathId === "string" && pathId.trim()) {
       return pathId.trim();
     }
@@ -1024,8 +1040,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         };
       }
       doc.layers[layer.id] = layer;
-      const parentId = resolveParentLayerId(doc, op.parent, refs);
-      insertIntoParent(doc, layer.id, parentId, op.at);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `created ${layer.id}` };
     }
     case "createGroup": {
@@ -1034,8 +1050,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         children: []
       };
       doc.layers[layer.id] = layer;
-      const parentId = resolveParentLayerId(doc, op.parent, refs);
-      insertIntoParent(doc, layer.id, parentId, op.at);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `created group ${layer.id}` };
     }
     case "groupLayers": {
@@ -1158,8 +1174,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         }
       };
       doc.layers[layer.id] = layer;
-      const parentId = resolveParentLayerId(doc, op.parent, refs);
-      insertIntoParent(doc, layer.id, parentId, op.at);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `created text ${layer.id}` };
     }
     case "createShapeLayer": {
@@ -1172,8 +1188,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         }
       };
       doc.layers[layer.id] = layer;
-      const parentId = resolveParentLayerId(doc, op.parent, refs);
-      insertIntoParent(doc, layer.id, parentId, op.at);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `created shape ${layer.id}` };
     }
     case "selectLayers": {
@@ -1412,25 +1428,74 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       return { refValue: layer.id, message: `resizeArtboard ${layer.name}` };
     }
     case "reorderArtboards": {
+      if ((op as any).by !== undefined) {
+        throw new Error("reorderArtboards does not support by{x,y}; use at/index, relativeTo+placement, or to(front/back)");
+      }
+      if ((op as any).parent !== undefined) {
+        throw new Error("reorderArtboards does not support parent; use relativeTo+placement or to(front/back)");
+      }
+      if (
+        (op as any).to === undefined &&
+        (op as any).relativeTo === undefined &&
+        (op as any).at === undefined &&
+        (op as any).index === undefined
+      ) {
+        throw new Error("reorderArtboards requires one of: to(front/back), relativeTo+placement, at/index");
+      }
+
       const layer = resolveLayer(
         doc,
         ((op as any).target ?? (op as any).artboard ?? (op as any).layer ?? (op as any).artboardName ?? (op as any).artboardId) as LayerReference,
         refs
       );
-      const destinationParentId = resolveParentLayerId(doc, (op as any).parent, refs);
-      insertIntoParent(doc, layer.id, destinationParentId, (op as any).at);
+      if (layer.type !== "artboard") {
+        throw new Error(`reorderArtboards target is not an artboard: ${layer.id}`);
+      }
+
+      let destinationParentId = layer.parentId;
+      let destinationIndex =
+        typeof (op as any).index === "number" && Number.isFinite((op as any).index)
+          ? Number((op as any).index)
+          : typeof (op as any).at === "number" && Number.isFinite((op as any).at)
+            ? Number((op as any).at)
+            : undefined;
+
+      const toValue = String((op as any).to ?? "").toLowerCase();
+      const artboardSiblings = orderedLayerIds(doc, layer.parentId).filter((id) => doc.layers[id]?.type === "artboard" && id !== layer.id);
+      if (toValue === "front") {
+        destinationIndex = 0;
+      } else if (toValue === "back") {
+        destinationIndex = artboardSiblings.length;
+      }
+
+      if ((op as any).relativeTo !== undefined) {
+        const anchor = resolveLayer(doc, (op as any).relativeTo as LayerReference, refs);
+        if (anchor.type !== "artboard") {
+          throw new Error(`reorderArtboards relativeTo is not an artboard: ${anchor.id}`);
+        }
+        destinationParentId = anchor.parentId;
+        const siblings = orderedLayerIds(doc, anchor.parentId).filter((id) => doc.layers[id]?.type === "artboard" && id !== layer.id);
+        const anchorIndex = siblings.indexOf(anchor.id);
+        const placement = String((op as any).placement ?? "placeAfter").toLowerCase();
+        destinationIndex = placement.includes("before") ? Math.max(0, anchorIndex) : Math.max(0, anchorIndex + 1);
+      }
+
+      insertIntoParent(doc, layer.id, destinationParentId, destinationIndex);
       return { refValue: layer.id, message: `reorderArtboards ${layer.name}` };
     }
     case "exportArtboards": {
       const outputDir = String((op as any).outputDir ?? "");
+      if (!outputDir.trim()) {
+        throw new Error("exportArtboards requires outputDir");
+      }
       const format = String((op as any).format ?? "png") as "png" | "jpg";
       const artboards = flattenLayers(doc).filter((layer) => layer.type === "artboard");
-      const records =
-        artboards.length > 0
-          ? artboards.map((layer) =>
-              appendExportRecord(doc, tx, format, `${outputDir}/${layer.name}.${format}`, "op.export", layer.id)
-            )
-          : [appendExportRecord(doc, tx, format, `${outputDir || "."}/${doc.ref}.${format}`, "op.export")];
+      if (artboards.length === 0) {
+        throw new Error("exportArtboards found no artboard layers");
+      }
+      const records = artboards.map((layer) =>
+        appendExportRecord(doc, tx, format, `${outputDir}/${layer.name}.${format}`, "op.export", layer.id)
+      );
       return { refValue: records[0]?.id, message: `exportArtboards count=${records.length}` };
     }
     case "flattenImage": {
@@ -1562,7 +1627,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         }
       };
       doc.layers[layer.id] = layer;
-      insertIntoParent(doc, layer.id, undefined);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `placed asset ${layer.id}` };
     }
     case "createAdjustmentLayer": {
@@ -1578,7 +1644,8 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
         layer.name = (op as any).name.trim();
       }
       doc.layers[layer.id] = layer;
-      insertIntoParent(doc, layer.id, undefined);
+      const parentId = resolveParentLayerId(doc, resolveCreateParentTarget(op as Record<string, unknown>), refs);
+      insertIntoParent(doc, layer.id, parentId, resolveCreateInsertIndex(op as Record<string, unknown>));
       return { refValue: layer.id, message: `adjustment ${layer.id}` };
     }
     case "setAdjustmentLayer": {
@@ -1634,7 +1701,19 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       };
       return { refValue: doc.ref, message: "contentAwareFill" };
     }
-    case "contentAwareScale":
+    case "contentAwareScale": {
+      const target = resolveLayer(doc, (op as any).target, refs);
+      if (target.mask && (op as any).allowMaskedLayer !== true) {
+        throw new Error(
+          `contentAwareScale target '${target.name}' has a mask. Apply/delete/disable the mask first, or set allowMaskedLayer:true.`
+        );
+      }
+      target.transform = {
+        ...(target.transform ?? {}),
+        [op.op]: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "target", "onError", "ref"].includes(k)))
+      };
+      return { refValue: target.id, message: `${op.op} ${target.id}` };
+    }
     case "contentAwareMove": {
       const target = resolveLayer(doc, (op as any).target, refs);
       target.transform = {
@@ -1660,8 +1739,13 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
     }
     case "createVectorMask": {
       const layer = resolveLayer(doc, op.target, refs);
+      const pathTarget = (op as any).path ?? (op as any).pathName ?? (op as any).pathId;
+      const pathItem = pathTarget ? resolvePath(doc, pathTarget, refs) : Object.values(doc.paths).find((item) => item.name === "Work Path");
+      if (!pathItem) {
+        throw new Error("createVectorMask requires path/pathName/pathId or an existing Work Path");
+      }
       layer.mask = { enabled: true, applied: false };
-      return { refValue: layer.id, message: `createVectorMask ${layer.id}` };
+      return { refValue: layer.id, message: `createVectorMask ${layer.id} via ${pathItem.name}` };
     }
     case "deleteVectorMask": {
       const layer = resolveLayer(doc, op.target, refs);

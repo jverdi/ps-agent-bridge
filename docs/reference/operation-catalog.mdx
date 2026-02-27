@@ -190,7 +190,8 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - BatchPlay errors are inspected for embedded descriptor errors and surfaced with indexed failure detail.
 - BatchPlay `textStyleRange[*].textStyle` replaces style objects; include full style fields when recoloring/re-styling text.
 - Layer-targeted export may use Photoshop-controlled filenames depending on command path.
-- `exportArtboards` defaults to a fallback document export when no descriptor/commands are provided.
+- `exportArtboards` defaults to per-artboard exports to `outputDir` (errors when no artboards are present).
+- `reorderArtboards` only supports `to(front/back)`, `relativeTo+placement`, and `at/index`; it rejects `by` and `parent`.
 - Document save without output can skip to avoid Save As dialogs when no existing path is present.
 - `createTextLayer.position.y` is the text baseline, not glyph-top.
 - Keep dependent work in one transaction (`psagent op apply`) because active document focus can shift between separate CLI invocations.

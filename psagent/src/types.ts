@@ -378,6 +378,7 @@ export interface OperationEnvelope {
     rollbackOnError?: boolean;
     onError?: OperationOnError;
     continueOnError?: boolean;
+    opDelayMs?: number;
   };
 }
 

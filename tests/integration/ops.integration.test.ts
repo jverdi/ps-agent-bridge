@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -326,6 +326,17 @@ async function readFixture(name: string): Promise<any> {
   return JSON.parse(source);
 }
 
+async function runPayload(harness: IntegrationHarness, payload: Record<string, unknown>): Promise<CliRunResult> {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "psagent-payload-"));
+  const filePath = path.join(tempDir, "ops.json");
+  await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  try {
+    return await harness.runJson(["op", "apply", "-f", filePath]);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
 test("applies full planned first-class capability payload through CLI -> adapter -> /rpc", async () => {
   await withHarness(async (harness) => {
     const sessionStart = await harness.runJson(["session", "start"]);
@@ -490,6 +501,145 @@ test("dry-run preserves state and abort-on-error stops subsequent mutations", as
     assertSuccess(afterFailure, "layer list after failing-abort");
     const afterFailureNames = (afterFailure.json as any).layers.map((layer: any) => layer.name).sort();
     assert.deepEqual(afterFailureNames, ["Hero", "Title"], "abort behavior should prevent second deleteLayer from running");
+  });
+});
+
+test("artboard parent targeting works and reorder/export validations are enforced", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const successPayload = {
+      transactionId: "artboard-parent-001",
+      doc: { ref: "active" },
+      ops: [
+        { op: "createArtboard", name: "Artboard A", ref: "abA" },
+        { op: "createArtboard", name: "Artboard B", ref: "abB" },
+        { op: "createLayer", name: "Layer One", parentLayer: "$abA", ref: "layer1" },
+        { op: "createTextLayer", name: "Title", text: "Hello", position: { x: 64, y: 128 }, artboard: "$abA", ref: "title" },
+        { op: "createShapeLayer", name: "Badge", x: 24, y: 24, width: 80, height: 80, container: "$abA", ref: "badge" },
+        {
+          op: "createAdjustmentLayer",
+          name: "Grade",
+          type: "brightnessContrast",
+          adjustment: { brightness: 6, contrast: 2 },
+          targetParent: "$abA",
+          ref: "grade"
+        },
+        { op: "placeAsset", name: "Placed", input: "./examples/tests/input.psd", parent: "$abA", ref: "placed" },
+        { op: "reorderArtboards", target: "$abB", relativeTo: "$abA", placement: "placeBefore" },
+        { op: "exportArtboards", outputDir: "./tmp/mock-artboards", format: "png" }
+      ]
+    } satisfies Record<string, unknown>;
+
+    const successApply = await runPayload(harness, successPayload);
+    assertSuccess(successApply, "op apply artboard-parent-001");
+    const successJson = successApply.json as any;
+    assert.equal(successJson.result.failed ?? 0, 0);
+    assert.equal(successJson.result.applied, successPayload.ops.length);
+
+    const refs = successJson.result.refs ?? {};
+    const artboardAId = String(refs.abA);
+    assert.ok(artboardAId, "expected ref for Artboard A");
+
+    const manifest = await harness.runJson(["doc", "manifest"]);
+    assertSuccess(manifest, "doc manifest after artboard-parent-001");
+    const layersById = new Map((manifest.json as any).layers.map((layer: any) => [String(layer.id), layer]));
+    for (const refName of ["layer1", "title", "badge", "grade", "placed"]) {
+      const layerId = String(refs[refName]);
+      const layer = layersById.get(layerId);
+      assert.ok(layer, `expected layer for ref ${refName}`);
+      assert.equal(String(layer.parentId), artboardAId, `${refName} should be parented to Artboard A`);
+    }
+    assert.equal(((manifest.json as any).exports ?? []).length, 2, "exportArtboards should export both artboards");
+
+    const invalidReorderPayload = {
+      transactionId: "artboard-parent-002",
+      doc: { ref: "active" },
+      ops: [{ op: "reorderArtboards", target: { layerName: "Artboard A" }, by: { x: 10, y: 0 } }]
+    } satisfies Record<string, unknown>;
+    const invalidReorder = await runPayload(harness, invalidReorderPayload);
+    assertSuccess(invalidReorder, "op apply artboard-parent-002");
+    const invalidReorderJson = invalidReorder.json as any;
+    assert.equal((invalidReorderJson.result.failures ?? []).length, 1);
+    const invalidReorderMessage = String(
+      invalidReorderJson.result.failures?.[0]?.error?.message ?? invalidReorderJson.result.failures?.[0]?.message ?? ""
+    );
+    assert.match(invalidReorderMessage, /does not support by/u);
+  });
+});
+
+test("vector-mask and content-aware-scale preflights return actionable failures", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const maskedScaleBlocked = await runPayload(harness, {
+      transactionId: "preflight-001",
+      doc: { ref: "active" },
+      ops: [
+        { op: "createLayer", name: "Masked Base", ref: "base" },
+        { op: "addLayerMask", target: "$base" },
+        { op: "contentAwareScale", target: "$base", scaleX: 95, scaleY: 95 }
+      ]
+    });
+    assertSuccess(maskedScaleBlocked, "op apply preflight-001");
+    const maskedScaleBlockedJson = maskedScaleBlocked.json as any;
+    assert.equal((maskedScaleBlockedJson.result.failures ?? []).length, 1);
+    const maskedScaleBlockedMessage = String(
+      maskedScaleBlockedJson.result.failures?.[0]?.error?.message ?? maskedScaleBlockedJson.result.failures?.[0]?.message ?? ""
+    );
+    assert.match(maskedScaleBlockedMessage, /has a mask/u);
+
+    const maskedScaleAllowed = await runPayload(harness, {
+      transactionId: "preflight-002",
+      doc: { ref: "active" },
+      ops: [
+        { op: "createLayer", name: "Masked Allowed", ref: "base" },
+        { op: "addLayerMask", target: "$base" },
+        { op: "contentAwareScale", target: "$base", scaleX: 95, scaleY: 95, allowMaskedLayer: true }
+      ]
+    });
+    assertSuccess(maskedScaleAllowed, "op apply preflight-002");
+    const maskedScaleAllowedJson = maskedScaleAllowed.json as any;
+    assert.equal(maskedScaleAllowedJson.result.failed ?? 0, 0);
+    assert.equal(maskedScaleAllowedJson.result.applied, 3);
+
+    const vectorMaskMissingPath = await runPayload(harness, {
+      transactionId: "preflight-003",
+      doc: { ref: "active" },
+      ops: [
+        { op: "createLayer", name: "Vector Missing", ref: "layerA" },
+        { op: "createVectorMask", target: "$layerA", path: "Missing Path" }
+      ]
+    });
+    assertSuccess(vectorMaskMissingPath, "op apply preflight-003");
+    const vectorMaskMissingPathJson = vectorMaskMissingPath.json as any;
+    assert.equal((vectorMaskMissingPathJson.result.failures ?? []).length, 1);
+    const vectorMaskMissingPathMessage = String(
+      vectorMaskMissingPathJson.result.failures?.[0]?.error?.message ?? vectorMaskMissingPathJson.result.failures?.[0]?.message ?? ""
+    );
+    assert.match(vectorMaskMissingPathMessage, /path not found|path target/u);
+
+    const vectorMaskWithWorkPath = await runPayload(harness, {
+      transactionId: "preflight-004",
+      doc: { ref: "active" },
+      ops: [
+        { op: "makeWorkPathFromSelection", name: "Work Path", ref: "workPath" },
+        { op: "createLayer", name: "Vector OK", ref: "layerB" },
+        { op: "createVectorMask", target: "$layerB" }
+      ]
+    });
+    assertSuccess(vectorMaskWithWorkPath, "op apply preflight-004");
+    const vectorMaskWithWorkPathJson = vectorMaskWithWorkPath.json as any;
+    assert.equal(vectorMaskWithWorkPathJson.result.failed ?? 0, 0);
+    assert.equal(vectorMaskWithWorkPathJson.result.applied, 3);
   });
 });
 
