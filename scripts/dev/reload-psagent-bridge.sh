@@ -12,6 +12,8 @@ service_port="${UXP_SERVICE_PORT:-14001}"
 target_app="${UXP_TARGET_APP:-PS}"
 uxp_cli_pkg="${UXP_CLI_PACKAGE:-@adobe-fixed-uxp/uxp-devtools-cli@1.6.6}"
 uxp_cli_workdir="${UXP_CLI_WORKDIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)/.cache/uxp-cli-fixed}"
+service_start_timeout="${UXP_SERVICE_START_TIMEOUT_SEC:-12}"
+service_start_log="${UXP_SERVICE_START_LOG:-/tmp/psagent-uxp-service-${service_port}.log}"
 
 usage() {
   cat <<USAGE
@@ -185,14 +187,70 @@ fi
 
 echo "Loading PSAgent bridge plugin via UXP CLI (app=${target_app}, id=${plugin_id})..."
 
-service_output="$("$uxp_bin" service start --port "$service_port" 2>&1)" || service_exit=$?
-service_exit="${service_exit:-0}"
-if [[ "$service_exit" -ne 0 ]]; then
-  if [[ "$service_output" != *"port ${service_port} is occupied"* ]]; then
-    echo "$service_output" >&2
-    exit "$service_exit"
+is_port_listening() {
+  local port="$1"
+  node - "$port" <<'NODE' >/dev/null 2>&1
+const net = require("node:net");
+const port = Number(process.argv[2]);
+
+if (!Number.isFinite(port) || port <= 0) {
+  process.exit(1);
+}
+
+const socket = net.createConnection({ host: "127.0.0.1", port });
+let done = false;
+const finish = (ok) => {
+  if (done) return;
+  done = true;
+  socket.destroy();
+  process.exit(ok ? 0 : 1);
+};
+
+socket.setTimeout(300);
+socket.on("connect", () => finish(true));
+socket.on("timeout", () => finish(false));
+socket.on("error", () => finish(false));
+NODE
+}
+
+ensure_uxp_service() {
+  if is_port_listening "$service_port"; then
+    return 0
   fi
-fi
+
+  echo "Starting UXP Developer Tool Service on port ${service_port}..."
+  nohup "$uxp_bin" service start --port "$service_port" >"$service_start_log" 2>&1 &
+  local service_pid=$!
+  local deadline=$((SECONDS + service_start_timeout))
+
+  while (( SECONDS < deadline )); do
+    if is_port_listening "$service_port"; then
+      return 0
+    fi
+
+    if ! kill -0 "$service_pid" 2>/dev/null; then
+      if is_port_listening "$service_port"; then
+        return 0
+      fi
+      echo "UXP service failed to start on port ${service_port}." >&2
+      echo "Recent service log (${service_start_log}):" >&2
+      tail -n 40 "$service_start_log" >&2 || true
+      return 1
+    fi
+    sleep 0.2
+  done
+
+  if is_port_listening "$service_port"; then
+    return 0
+  fi
+
+  echo "Timed out waiting for UXP service on port ${service_port} after ${service_start_timeout}s." >&2
+  echo "Recent service log (${service_start_log}):" >&2
+  tail -n 40 "$service_start_log" >&2 || true
+  return 1
+}
+
+ensure_uxp_service
 
 load_output="$("$uxp_bin" plugin load --manifest "$manifest_path" --apps "$target_app" 2>&1)" || load_exit=$?
 load_exit="${load_exit:-0}"

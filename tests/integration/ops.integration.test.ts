@@ -377,6 +377,19 @@ test("op help lists operation catalog and per-operation argument docs", async ()
   assert.match(aliasHelp.stdout, /"op": "addLayerMask"/u);
 });
 
+test("cli --version matches package.json version", async () => {
+  const versionResult = await runCli(["--version"], process.env);
+  assert.equal(
+    versionResult.code,
+    0,
+    `--version failed\nstdout:\n${versionResult.stdout}\nstderr:\n${versionResult.stderr}`
+  );
+
+  const packageSource = await readFile(path.join(repoRoot, "package.json"), "utf8");
+  const packageVersion = (JSON.parse(packageSource) as { version: string }).version;
+  assert.equal(versionResult.stdout.trim(), packageVersion);
+});
+
 test("agent controls payload validates refs + onError continue/abort + rollbackOnError + checkpoints", async () => {
   await withHarness(async (harness) => {
     const sessionStart = await harness.runJson(["session", "start"]);

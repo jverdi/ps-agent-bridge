@@ -11,6 +11,7 @@ import { registerRenderCommands } from "./commands/render.js";
 import { registerSessionCommands } from "./commands/session.js";
 import { wrapAction } from "./core/command.js";
 import { printData } from "./core/output.js";
+import { readCliVersion } from "./core/version.js";
 import { buildRuntimeFromOptions } from "./core/runtime.js";
 import { startMockBridge } from "./bridge/mock-server.js";
 import { startBridgeDaemon } from "./bridge/daemon.js";
@@ -20,7 +21,7 @@ const program = new Command();
 program
   .name("psagent")
   .description("Agent Bridge for Photoshop")
-  .version("0.1.1")
+  .version(readCliVersion())
   .showHelpAfterError()
   .option("--json", "JSON output")
   .option("--plain", "Plain line-based output")
