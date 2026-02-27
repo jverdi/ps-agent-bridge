@@ -107,6 +107,14 @@ const OP_REQUIRES_LAYER_TARGET = new Set([
   "applyMinimum",
   "applyMaximum",
   "applyDustAndScratches",
+  "resizeArtboard",
+  "reorderArtboards",
+  "createVectorMask",
+  "deleteVectorMask",
+  "setTextWarp",
+  "setTextOnPath",
+  "contentAwareScale",
+  "contentAwareMove",
   "getLayerMaskPixels",
   "putLayerMaskPixels",
   "setText",
@@ -1579,6 +1587,170 @@ function resolveSaveOption(rawOption) {
   return normalizeEnumLookup(saveOptions, rawOption, rawOption);
 }
 
+function extractBatchPlayCommands(op) {
+  const commands = Array.isArray(op?.commands)
+    ? op.commands
+    : op?.command
+      ? [op.command]
+      : op?.descriptor
+        ? [op.descriptor]
+        : null;
+
+  if (!commands || commands.length === 0) {
+    throw new Error(`${String(op?.op || "operation")} requires commands[] or command/descriptor`);
+  }
+  return commands;
+}
+
+function buildClassFloatRect(rect) {
+  return {
+    _obj: "classFloatRect",
+    top: Number(rect.top),
+    left: Number(rect.left),
+    bottom: Number(rect.bottom),
+    right: Number(rect.right)
+  };
+}
+
+function normalizeArtboardBounds(op, doc) {
+  const explicit = rectFromSpec(op.bounds || op.frame || op.rect || op.targetRect);
+  if (explicit) {
+    return explicit;
+  }
+  if (
+    Number.isFinite(Number(op.x)) &&
+    Number.isFinite(Number(op.y)) &&
+    Number.isFinite(Number(op.width)) &&
+    Number.isFinite(Number(op.height))
+  ) {
+    return rectFromSpec({
+      x: Number(op.x),
+      y: Number(op.y),
+      width: Number(op.width),
+      height: Number(op.height)
+    });
+  }
+  return documentRect(doc);
+}
+
+function normalizeAutoAlignProjection(rawMode) {
+  const token = normalizeLookupToken(rawMode || "auto");
+  if (token === "perspective") return "ADSContent";
+  if (token === "cylindrical") return "ADSCylindrical";
+  if (token === "spherical") return "ADSSpherical";
+  if (token === "reposition" || token === "position") return "ADSReposition";
+  return "ADSAuto";
+}
+
+function normalizeAutoBlendMode(rawMode) {
+  const token = normalizeLookupToken(rawMode || "panorama");
+  if (token === "stack" || token === "stackimages" || token === "focusstack") {
+    return "stackImages";
+  }
+  return "panorama";
+}
+
+function normalizeRefineEdgeOutput(rawOutput) {
+  const token = normalizeLookupToken(rawOutput || "selection");
+  if (token === "layermask" || token === "mask") return "layerMask";
+  if (token === "newlayer") return "newLayer";
+  if (token === "newlayerwithlayermask" || token === "newlayermask") return "newLayerWithLayerMask";
+  if (token === "newdocument") return "newDocument";
+  if (token === "newdocumentwithlayermask" || token === "newdocumentmask") return "newDocumentWithLayerMask";
+  return "selection";
+}
+
+function normalizePathPoint(rawPoint) {
+  if (!rawPoint || typeof rawPoint !== "object") {
+    throw new Error("Path point must be an object");
+  }
+
+  const x = toFiniteNumber(rawPoint.x ?? rawPoint.anchor?.x ?? rawPoint.anchor?.[0], undefined);
+  const y = toFiniteNumber(rawPoint.y ?? rawPoint.anchor?.y ?? rawPoint.anchor?.[1], undefined);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    throw new Error("Path point requires numeric x/y or anchor coordinates");
+  }
+
+  const leftX = toFiniteNumber(
+    rawPoint.leftDirection?.x ?? rawPoint.leftDirection?.[0] ?? rawPoint.backward?.x ?? rawPoint.backward?.[0],
+    x
+  );
+  const leftY = toFiniteNumber(
+    rawPoint.leftDirection?.y ?? rawPoint.leftDirection?.[1] ?? rawPoint.backward?.y ?? rawPoint.backward?.[1],
+    y
+  );
+  const rightX = toFiniteNumber(
+    rawPoint.rightDirection?.x ?? rawPoint.rightDirection?.[0] ?? rawPoint.forward?.x ?? rawPoint.forward?.[0],
+    x
+  );
+  const rightY = toFiniteNumber(
+    rawPoint.rightDirection?.y ?? rawPoint.rightDirection?.[1] ?? rawPoint.forward?.y ?? rawPoint.forward?.[1],
+    y
+  );
+  const explicitKind = rawPoint.kind !== undefined ? String(rawPoint.kind) : undefined;
+  const smooth = rawPoint.smooth !== undefined
+    ? Boolean(rawPoint.smooth)
+    : normalizeLookupToken(explicitKind || "").includes("smooth");
+
+  return {
+    anchor: [x, y],
+    leftDirection: [leftX, leftY],
+    rightDirection: [rightX, rightY],
+    smooth,
+    kind: explicitKind
+  };
+}
+
+function resolvePathPointKindValue(kind, smooth) {
+  const token = normalizeLookupToken(kind || (smooth ? "smoothPoint" : "cornerPoint"));
+  if (token.includes("smooth")) {
+    return normalizeEnumLookup(
+      constants?.PointKind,
+      "smoothPoint",
+      constants?.PointKind?.SMOOTHPOINT || "smoothPoint"
+    );
+  }
+  return normalizeEnumLookup(
+    constants?.PointKind,
+    "cornerPoint",
+    constants?.PointKind?.CORNERPOINT || "cornerPoint"
+  );
+}
+
+function resolveHistoryStateTarget(doc, op) {
+  if (op?.historyStateId !== undefined || op?.id !== undefined) {
+    const id = Number(op.historyStateId ?? op.id);
+    if (Number.isFinite(id)) {
+      const byId = Array.from(doc.historyStates || []).find((state) => Number(state.id) === id);
+      if (byId) {
+        return byId;
+      }
+    }
+  }
+
+  const targetName = String(op?.historyStateName || op?.name || "").trim();
+  if (targetName) {
+    const byName = Array.from(doc.historyStates || []).find((state) => String(state.name) === targetName);
+    if (byName) {
+      return byName;
+    }
+  }
+
+  return null;
+}
+
+function serializeHistoryState(state, activeStateId) {
+  if (!state) {
+    return null;
+  }
+  return {
+    id: state.id !== undefined ? String(state.id) : undefined,
+    name: state.name || undefined,
+    snapshot: Boolean(state.snapshot),
+    active: state.id !== undefined && activeStateId !== undefined ? Number(state.id) === Number(activeStateId) : undefined
+  };
+}
+
 async function runCreateDocument(op, ctx) {
   const options = {};
   if (op.name) options.name = String(op.name);
@@ -1996,6 +2168,120 @@ async function runSampleColor(op, ctx) {
   return {
     color: cloneSerializable(color),
     detail: `Sampled color at (${x}, ${y})`
+  };
+}
+
+async function runCreateHistorySnapshot(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const snapshotName = String(op.name || op.snapshotName || `psagent-${Date.now()}`).trim();
+  if (!snapshotName) {
+    throw new Error("createHistorySnapshot requires name/snapshotName");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "make",
+        _target: [
+          {
+            _ref: "snapshotClass"
+          }
+        ],
+        from: {
+          _ref: "historyState",
+          _property: "currentHistoryState"
+        },
+        name: snapshotName,
+        using: {
+          _enum: "historyState",
+          _value: "fullDocument"
+        },
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "createHistorySnapshot" }
+  );
+
+  const activeId = doc.activeHistoryState?.id;
+  const historyState = resolveHistoryStateTarget(doc, { historyStateName: snapshotName }) || doc.activeHistoryState;
+  return {
+    historyState: serializeHistoryState(historyState, activeId),
+    refValue: historyState?.id !== undefined ? String(historyState.id) : undefined,
+    detail: `Created history snapshot '${snapshotName}'`
+  };
+}
+
+async function runListHistoryStates(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const states = Array.from(doc.historyStates || []);
+  const activeId = doc.activeHistoryState?.id;
+  return {
+    historyStates: states.map((state) => serializeHistoryState(state, activeId)),
+    count: states.length,
+    detail: `Listed ${states.length} history state(s)`
+  };
+}
+
+async function runRestoreHistoryState(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const state = resolveHistoryStateTarget(doc, op);
+  if (!state) {
+    throw new Error("restoreHistoryState requires an existing historyStateId/id or historyStateName/name");
+  }
+
+  doc.activeHistoryState = state;
+  const activeId = doc.activeHistoryState?.id;
+  return {
+    historyState: serializeHistoryState(state, activeId),
+    refValue: state.id !== undefined ? String(state.id) : undefined,
+    detail: `Restored history state '${state.name || state.id}'`
+  };
+}
+
+async function runSuspendHistory(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const historyName = String(op.name || op.historyStateName || "PSAgent Suspend History").trim();
+  if (!historyName) {
+    throw new Error("suspendHistory requires name/historyStateName");
+  }
+
+  const executeWithScope = async () => {
+    const commands = extractBatchPlayCommands(op);
+    const descriptors = await runBatchPlay(
+      commands,
+      {
+        ...(op.options && typeof op.options === "object" ? cloneSerializable(op.options) : {}),
+        historyStateInfo: {
+          name: historyName,
+          target: {
+            _ref: "document",
+            _id: Number(doc.id)
+          }
+        }
+      },
+      { op: "suspendHistory" }
+    );
+    return {
+      descriptorCount: commands.length,
+      descriptors
+    };
+  };
+
+  let scopedResult = null;
+  if (typeof doc.suspendHistory === "function") {
+    await doc.suspendHistory(async () => {
+      scopedResult = await executeWithScope();
+    }, historyName);
+  } else {
+    scopedResult = await executeWithScope();
+  }
+
+  return {
+    ...(scopedResult || {}),
+    detail: `Executed commands inside suspendHistory scope '${historyName}'`
   };
 }
 
@@ -2718,6 +3004,146 @@ async function runMergeLayer(op, ctx) {
     layer: serializeLayer(merged),
     refValue: buildLayerRefValue(merged),
     detail: `Merged layer '${layer.name}'`
+  };
+}
+
+async function runCreateArtboard(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const bounds = normalizeArtboardBounds(op, doc);
+  if (!bounds) {
+    throw new Error("createArtboard requires bounds/frame/x+y+width+height, or an active document with valid dimensions");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "make",
+        _target: [
+          {
+            _ref: "artboardSection"
+          }
+        ],
+        using: {
+          _obj: "artboardSection",
+          ...(op.name ? { name: String(op.name) } : {}),
+          artboardRect: buildClassFloatRect(bounds)
+        },
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "createArtboard" }
+  );
+
+  const created =
+    (op.name ? findLayer({ layerName: String(op.name) }, ctx.refs, { doc, allowAny: true }) : null) ||
+    doc.activeLayers?.[0] ||
+    null;
+
+  return {
+    layer: serializeLayer(created),
+    refValue: created ? buildLayerRefValue(created) : undefined,
+    bounds,
+    detail: `Created artboard${op.name ? ` '${String(op.name)}'` : ""}`
+  };
+}
+
+async function runResizeArtboard(op, ctx) {
+  const layer = requireLayerTarget(
+    {
+      ...op,
+      target: op.target || op.artboard || op.layer || op.artboardName || op.artboardId
+    },
+    ctx.refs
+  );
+  const doc = activeDocumentOrThrow();
+  const fallbackRect = boundsToRect(layer) || documentRect(doc);
+  const bounds = normalizeArtboardBounds(op, doc) || fallbackRect;
+  if (!bounds) {
+    throw new Error("resizeArtboard requires target artboard and valid bounds/frame/x+y+width+height");
+  }
+
+  await selectLayer(layer);
+  await runBatchPlay(
+    [
+      {
+        _obj: "editArtboardEvent",
+        _target: [
+          {
+            _ref: "layer",
+            _id: Number(layer.id)
+          }
+        ],
+        artboardRect: buildClassFloatRect(bounds),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "resizeArtboard" }
+  );
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    bounds,
+    detail: `Resized artboard '${layer.name}'`
+  };
+}
+
+async function runReorderArtboards(op, ctx) {
+  const moveTarget = op.target || op.artboard || op.layer || op.artboardName || op.artboardId;
+  const result = await runMoveLayer(
+    {
+      ...op,
+      op: "moveLayer",
+      target: moveTarget
+    },
+    ctx
+  );
+
+  return {
+    ...result,
+    detail: result?.detail ? `Reordered artboard: ${result.detail}` : "Reordered artboard"
+  };
+}
+
+async function runExportArtboards(op, ctx) {
+  if (op.commands || op.command || op.descriptor) {
+    const commands = extractBatchPlayCommands(op);
+    const descriptors = await runBatchPlay(commands, op.options || {}, { op: "exportArtboards" });
+    return {
+      descriptorCount: commands.length,
+      descriptors,
+      detail: `Executed exportArtboards descriptor batch (${commands.length} command(s))`
+    };
+  }
+
+  const format = String(op.format || "png").toLowerCase();
+  const outputDir = String(op.outputDir || "").trim();
+  if (!outputDir) {
+    throw new Error("exportArtboards requires outputDir when no descriptor/commands are provided");
+  }
+
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const fallbackOutput = `${outputDir}/${String(doc.title || "document")}.${format}`;
+  const exported = await runExportDocument(
+    {
+      ...op,
+      op: "exportDocument",
+      output: op.output || fallbackOutput,
+      format
+    },
+    ctx
+  );
+
+  return {
+    ...exported,
+    fallback: true,
+    detail: "exportArtboards fallback exported active document; pass descriptor/commands for explicit per-artboard export behavior"
   };
 }
 
@@ -3719,6 +4145,90 @@ async function runDistributeLayers(op, ctx) {
   };
 }
 
+async function runAutoAlignLayers(op, ctx) {
+  const doc = activeDocumentOrThrow();
+  const targets = Array.isArray(op.targets) ? op.targets : [];
+  if (targets.length > 0) {
+    const layers = targets.map((target) => {
+      const layer = findLayer(target, ctx.refs);
+      if (!layer) {
+        throw new Error("autoAlignLayers target not found");
+      }
+      return layer;
+    });
+    if (layers.length < 2) {
+      throw new Error("autoAlignLayers requires at least 2 target layers");
+    }
+    doc.activeLayers = layers;
+  } else if ((doc.activeLayers || []).length < 2) {
+    throw new Error("autoAlignLayers requires at least 2 active layers or explicit targets[]");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "alignLayersByContent",
+        using: {
+          _enum: "projection",
+          _value: normalizeAutoAlignProjection(op.mode || op.projection || op.using)
+        },
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "autoAlignLayers" }
+  );
+
+  return {
+    detail: `Auto-aligned ${(doc.activeLayers || []).length} layer(s)`
+  };
+}
+
+async function runAutoBlendLayers(op, ctx) {
+  const doc = activeDocumentOrThrow();
+  const targets = Array.isArray(op.targets) ? op.targets : [];
+  if (targets.length > 0) {
+    const layers = targets.map((target) => {
+      const layer = findLayer(target, ctx.refs);
+      if (!layer) {
+        throw new Error("autoBlendLayers target not found");
+      }
+      return layer;
+    });
+    if (layers.length < 2) {
+      throw new Error("autoBlendLayers requires at least 2 target layers");
+    }
+    doc.activeLayers = layers;
+  } else if ((doc.activeLayers || []).length < 2) {
+    throw new Error("autoBlendLayers requires at least 2 active layers or explicit targets[]");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "blendLayers",
+        using: {
+          _enum: "blendMode",
+          _value: normalizeAutoBlendMode(op.mode || op.blendMode || op.using)
+        },
+        seamlessTonesAndColors: Boolean(op.seamlessTonesAndColors ?? op.seamless ?? true),
+        contentAwareFillTransparentAreas: Boolean(op.contentAwareFillTransparentAreas ?? op.fillTransparentAreas ?? true),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "autoBlendLayers" }
+  );
+
+  return {
+    detail: `Auto-blended ${(doc.activeLayers || []).length} layer(s)`
+  };
+}
+
 async function runPlaceAsset(op, ctx) {
   const input = op.input || op.path || op.source;
   if (!input) {
@@ -4362,6 +4872,188 @@ async function runCreatePath(op, ctx) {
   };
 }
 
+async function runCreatePathFromPoints(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const rawPoints = Array.isArray(op.points) ? op.points : [];
+  if (rawPoints.length < 2) {
+    throw new Error("createPathFromPoints requires points[] with at least 2 points");
+  }
+
+  const points = rawPoints.map((point) => normalizePathPoint(point));
+  const closedSubpath = op.closed !== false;
+  const pathName = String(op.name || "Work Path").trim() || "Work Path";
+  const pathItems = doc.pathItems;
+  const SubPathInfoCtor = photoshop?.SubPathInfo || globalThis.SubPathInfo;
+  const PathPointInfoCtor = photoshop?.PathPointInfo || globalThis.PathPointInfo;
+
+  if (pathItems && typeof pathItems.add === "function" && typeof SubPathInfoCtor === "function" && typeof PathPointInfoCtor === "function") {
+    const subPath = new SubPathInfoCtor();
+    subPath.closed = closedSubpath;
+
+    const shapeOperation = normalizeEnumLookup(
+      constants?.ShapeOperation,
+      op.shapeOperation || op.operation || "shapeAdd",
+      constants?.ShapeOperation?.SHAPEADD || "shapeAdd"
+    );
+    if (shapeOperation !== undefined) {
+      subPath.operation = shapeOperation;
+    }
+
+    subPath.entireSubPath = points.map((point) => {
+      const pathPoint = new PathPointInfoCtor();
+      pathPoint.anchor = point.anchor;
+      pathPoint.leftDirection = point.leftDirection;
+      pathPoint.rightDirection = point.rightDirection;
+      pathPoint.kind = resolvePathPointKindValue(point.kind, point.smooth);
+      return pathPoint;
+    });
+
+    const createdDomPath = await pathItems.add(pathName, [subPath]);
+    const createdDom = createdDomPath || findPathForDoc(doc, pathName, ctx.refs, { allowAny: false }) || listPathItemsForDoc(doc)[0] || null;
+    return {
+      path: serializePathItem(createdDom),
+      refValue: createdDom?.id !== undefined ? String(createdDom.id) : undefined,
+      detail: `Created path '${pathName}' from ${points.length} point(s)`
+    };
+  }
+
+  const batchPlayPoints = points.map((point) => ({
+    _obj: "pathPoint",
+    anchor: {
+      _obj: "paint",
+      horizontal: point.anchor[0],
+      vertical: point.anchor[1]
+    },
+    forward: {
+      _obj: "paint",
+      horizontal: point.rightDirection[0],
+      vertical: point.rightDirection[1]
+    },
+    backward: {
+      _obj: "paint",
+      horizontal: point.leftDirection[0],
+      vertical: point.leftDirection[1]
+    },
+    smooth: Boolean(point.smooth)
+  }));
+
+  let batchPlayError = null;
+  try {
+    await runBatchPlay(
+      [
+        {
+          _obj: "make",
+          _target: [
+            {
+              _ref: "path"
+            }
+          ],
+          from: {
+            _obj: "pathClass",
+            name: pathName,
+            pathComponents: [
+              {
+                _obj: "pathComponent",
+                shapeOperation: {
+                  _enum: "shapeOperation",
+                  _value: "add"
+                },
+                subpathListKey: [
+                  {
+                    _obj: "subpathsList",
+                    closedSubpath,
+                    points: batchPlayPoints
+                  }
+                ]
+              }
+            ]
+          },
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "createPathFromPoints" }
+    );
+
+    const created = findPathForDoc(doc, pathName, ctx.refs, { allowAny: false }) || listPathItemsForDoc(doc)[0] || null;
+    return {
+      path: serializePathItem(created),
+      refValue: created?.id !== undefined ? String(created.id) : undefined,
+      detail: `Created path '${pathName}' from ${points.length} point(s)`
+    };
+  } catch (error) {
+    batchPlayError = error;
+  }
+
+  const selection = selectionForDoc(doc);
+  if (points.length >= 3 && typeof selection.selectPolygon === "function" && typeof selection.makeWorkPath === "function") {
+    await selection.selectPolygon(
+      points.map((point) => ({
+        x: point.anchor[0],
+        y: point.anchor[1]
+      })),
+      resolveSelectionType("replace"),
+      0,
+      false
+    );
+    await selection.makeWorkPath(toFiniteNumber(op.tolerance, 2));
+    const createdFallback = findPathForDoc(doc, "Work Path", ctx.refs, { allowAny: false }) || listPathItemsForDoc(doc)[0] || null;
+    if (createdFallback && pathName) {
+      createdFallback.name = pathName;
+    }
+    return {
+      path: serializePathItem(createdFallback),
+      refValue: createdFallback?.id !== undefined ? String(createdFallback.id) : undefined,
+      detail: `Created path '${pathName}' from ${points.length} point(s) via selection fallback`
+    };
+  }
+
+  throw batchPlayError || new Error("createPathFromPoints failed");
+}
+
+async function runSetPathPoints(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const targetPath = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!targetPath) {
+    throw new Error("setPathPoints target path not found");
+  }
+
+  const nextName = String(op.name || targetPath.name || "Work Path");
+  if (typeof targetPath.remove === "function") {
+    await targetPath.remove();
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "delete",
+          _target: [
+            {
+              _ref: "path",
+              _name: String(targetPath.name)
+            }
+          ],
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "setPathPoints.delete" }
+    );
+  }
+
+  return runCreatePathFromPoints(
+    {
+      ...op,
+      op: "createPathFromPoints",
+      name: nextName
+    },
+    ctx
+  );
+}
+
 async function runDeletePath(op, ctx) {
   const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
   const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
@@ -4786,6 +5478,123 @@ async function runSmoothSelection(op, ctx) {
   };
 }
 
+async function runSelectSubject(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc) {
+    throw new Error("selectSubject requires an active document");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "autoCutout",
+        sampleAllLayers: Boolean(op.sampleAllLayers ?? op.allLayers ?? false),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "selectSubject" }
+  );
+
+  return {
+    detail: "Selected subject"
+  };
+}
+
+async function runSelectColorRange(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc) {
+    throw new Error("selectColorRange requires an active document");
+  }
+
+  const descriptor = op.descriptor && typeof op.descriptor === "object"
+    ? cloneSerializable(op.descriptor)
+    : {
+        _obj: "colorRange",
+        fuzziness: toFiniteNumber(op.fuzziness, 40),
+        invert: Boolean(op.invert ?? false),
+        localizedColorClusters: Boolean(op.localizedColorClusters ?? false),
+        ...(op.color !== undefined || op.sampledColor !== undefined
+          ? {
+              colorModel: toRgbColorDescriptor(op.color ?? op.sampledColor)
+            }
+          : {}),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      };
+
+  try {
+    await runBatchPlay([descriptor], op.options || {}, { op: "selectColorRange" });
+  } catch (error) {
+    const hasExplicitDescriptor = Boolean(op.descriptor);
+    if (hasExplicitDescriptor || op.strict === true) {
+      throw error;
+    }
+    const warning = sanitizeError(error).message;
+    pushEvent("warn", `selectColorRange fallback: ${warning}`);
+    return {
+      warning,
+      detail:
+        "Photoshop rejected the shorthand color-range descriptor in this build; pass a recorded descriptor via descriptor/commands or set strict=true to fail."
+    };
+  }
+
+  return {
+    detail: "Selected color range"
+  };
+}
+
+async function runRefineSelection(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc) {
+    throw new Error("refineSelection requires an active document");
+  }
+
+  const descriptor = op.descriptor && typeof op.descriptor === "object"
+    ? cloneSerializable(op.descriptor)
+    : {
+        _obj: "refineSelectionEdge",
+        smartRadius: Boolean(op.smartRadius ?? false),
+        radius: unitPx(toFiniteNumber(op.radius, 0)),
+        smooth: toFiniteNumber(op.smooth, 0),
+        featherRadius: unitPx(toFiniteNumber(op.feather, 0)),
+        contrast: unitPercent(toFiniteNumber(op.contrast, 0)),
+        shiftEdge: unitPercent(toFiniteNumber(op.shiftEdge, 0)),
+        decontaminate: Boolean(op.decontaminateColors ?? false),
+        amount: unitPercent(toFiniteNumber(op.decontaminateAmount, 100)),
+        outputTo: {
+          _enum: "refineEdgeOutput",
+          _value: normalizeRefineEdgeOutput(op.output || op.outputTo)
+        },
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      };
+
+  try {
+    await runBatchPlay([descriptor], op.options || {}, { op: "refineSelection" });
+  } catch (error) {
+    const hasExplicitDescriptor = Boolean(op.descriptor);
+    if (hasExplicitDescriptor || op.strict === true) {
+      throw error;
+    }
+    const warning = sanitizeError(error).message;
+    pushEvent("warn", `refineSelection fallback: ${warning}`);
+    return {
+      warning,
+      detail:
+        "Photoshop rejected the shorthand refine-selection descriptor in this build; pass a recorded descriptor via descriptor/commands or set strict=true to fail."
+    };
+  }
+
+  return {
+    detail: "Refined selection edge"
+  };
+}
+
 async function runSelectRectangle(op, ctx) {
   const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
   const bounds = op.bounds;
@@ -5190,6 +5999,88 @@ async function runCreateClippingMask(op, ctx) {
 
 async function runReleaseClippingMask(op, ctx) {
   return runSetClippingMaskState(op, ctx, false);
+}
+
+async function runCreateVectorMask(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  await selectLayer(layer);
+  const pathTarget = op.path || op.pathName || op.pathId;
+  const pathRef = normalizePathTarget(pathTarget, ctx.refs);
+  const pathIdNumeric = Number(pathRef?.pathId);
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "make",
+        new: {
+          _class: "path"
+        },
+        at: {
+          _ref: "path",
+          _enum: "path",
+          _value: "vectorMask"
+        },
+        ...(pathRef?.pathName
+          ? {
+              using: {
+                _ref: "path",
+                _name: String(pathRef.pathName)
+              }
+            }
+          : {}),
+        ...(pathRef?.pathId && Number.isFinite(pathIdNumeric)
+          ? {
+              using: {
+                _ref: "path",
+                _id: pathIdNumeric
+              }
+            }
+          : {}),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "createVectorMask" }
+  );
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Created vector mask on '${layer.name}'`
+  };
+}
+
+async function runDeleteVectorMask(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  await selectLayer(layer);
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "delete",
+        _target: [
+          {
+            _ref: "path",
+            _enum: "path",
+            _value: "vectorMask"
+          }
+        ],
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "deleteVectorMask" }
+  );
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Deleted vector mask on '${layer.name}'`
+  };
 }
 
 function resolveStrokePosition(rawPosition) {
@@ -6024,6 +6915,98 @@ async function runApplyDustAndScratches(op, ctx) {
   };
 }
 
+async function runContentAwareFill(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc) {
+    throw new Error("contentAwareFill requires an active document");
+  }
+
+  const descriptor = op.descriptor && typeof op.descriptor === "object"
+    ? cloneSerializable(op.descriptor)
+    : {
+        _obj: "contentAwareFill",
+        colorAdaptation: Boolean(op.colorAdaptation ?? true),
+        rotationAdaptation: Boolean(op.rotationAdaptation ?? false),
+        scale: Boolean(op.scale ?? false),
+        mirror: Boolean(op.mirror ?? false),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      };
+
+  await runBatchPlay([descriptor], op.options || {}, { op: "contentAwareFill" });
+
+  return {
+    detail: "Applied content-aware fill"
+  };
+}
+
+async function runContentAwareScale(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  await selectLayer(layer);
+  const scaleX = toFiniteNumber(op.scaleX ?? op.width ?? op.scale, undefined);
+  const scaleY = toFiniteNumber(op.scaleY ?? op.height ?? op.scale, scaleX);
+
+  const descriptor = op.descriptor && typeof op.descriptor === "object"
+    ? cloneSerializable(op.descriptor)
+    : {
+        _obj: "contentAwareScale",
+        ...(Number.isFinite(scaleX)
+          ? {
+              width: unitPercent(scaleX)
+            }
+          : {}),
+        ...(Number.isFinite(scaleY)
+          ? {
+              height: unitPercent(scaleY)
+            }
+          : {}),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      };
+
+  await runBatchPlay([descriptor], op.options || {}, { op: "contentAwareScale" });
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied content-aware scale to '${layer.name}'`
+  };
+}
+
+async function runContentAwareMove(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  await selectLayer(layer);
+  const dx = toFiniteNumber(op.x ?? op.dx ?? op.horizontal, 0);
+  const dy = toFiniteNumber(op.y ?? op.dy ?? op.vertical, 0);
+
+  const descriptor = op.descriptor && typeof op.descriptor === "object"
+    ? cloneSerializable(op.descriptor)
+    : {
+        _obj: "patchSelection",
+        from: {
+          _obj: "paint",
+          horizontal: dx,
+          vertical: dy
+        },
+        adaptation: String(op.adaptation || "veryStrict"),
+        structure: toFiniteNumber(op.structure, 4),
+        color: toFiniteNumber(op.color, 2),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      };
+
+  await runBatchPlay([descriptor], op.options || {}, { op: "contentAwareMove" });
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied content-aware move on '${layer.name}'`
+  };
+}
+
 async function runApplyFilter(op, ctx) {
   const filter = String(op.filter || op.kind || "").toLowerCase();
   if (!filter) {
@@ -6323,6 +7306,154 @@ async function runSetTextStyle(op, ctx) {
     layer: serializeLayer(layer),
     refValue: buildLayerRefValue(layer),
     detail: `Updated text style on '${layer.name}' (${applied} fields)`
+  };
+}
+
+function resolveWarpStyle(rawStyle) {
+  if (!rawStyle) {
+    return undefined;
+  }
+  return normalizeEnumLookup(constants?.WarpStyle, rawStyle, rawStyle);
+}
+
+function resolveOrientation(rawOrientation) {
+  if (!rawOrientation) {
+    return undefined;
+  }
+  return normalizeEnumLookup(constants?.Orientation, rawOrientation, rawOrientation);
+}
+
+async function runSetTextWarp(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const textItem = layer.textItem;
+  if (!textItem) {
+    throw new Error(`Layer '${layer.name}' is not a text layer`);
+  }
+
+  let applied = 0;
+  const warpStyle = resolveWarpStyle(op.style || op.warpStyle);
+  if (warpStyle !== undefined && "warpStyle" in textItem) {
+    textItem.warpStyle = warpStyle;
+    applied += 1;
+  }
+
+  const warpValue = toFiniteNumber(op.bend ?? op.warpValue, undefined);
+  if (Number.isFinite(warpValue) && "warpValue" in textItem) {
+    textItem.warpValue = Number(warpValue);
+    applied += 1;
+  }
+
+  const warpPerspective = toFiniteNumber(op.horizontalDistortion ?? op.warpPerspective, undefined);
+  if (Number.isFinite(warpPerspective) && "warpPerspective" in textItem) {
+    textItem.warpPerspective = Number(warpPerspective);
+    applied += 1;
+  }
+
+  const warpPerspectiveOther = toFiniteNumber(op.verticalDistortion ?? op.warpPerspectiveOther, undefined);
+  if (Number.isFinite(warpPerspectiveOther) && "warpPerspectiveOther" in textItem) {
+    textItem.warpPerspectiveOther = Number(warpPerspectiveOther);
+    applied += 1;
+  }
+
+  const orientation = resolveOrientation(op.orientation || op.warpRotate);
+  if (orientation !== undefined && "orientation" in textItem) {
+    textItem.orientation = orientation;
+    applied += 1;
+  }
+
+  if (applied === 0) {
+    throw new Error("setTextWarp requires one or more supported fields: style/bend/horizontalDistortion/verticalDistortion/orientation");
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Updated text warp on '${layer.name}' (${applied} fields)`
+  };
+}
+
+async function runSetTextOnPath(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  if (!layer.textItem) {
+    throw new Error(`Layer '${layer.name}' is not a text layer`);
+  }
+
+  const doc = activeDocumentOrThrow();
+  const pathItem =
+    findPathForDoc(doc, op.path || op.pathName || op.pathId || op.targetPath, ctx.refs, { allowAny: false }) ||
+    listPathItemsForDoc(doc)[0] ||
+    null;
+  if (!pathItem && !op.descriptor && !op.command && !op.commands) {
+    throw new Error("setTextOnPath requires path/pathName/pathId, or explicit descriptor/commands");
+  }
+
+  const descriptor =
+    op.descriptor && typeof op.descriptor === "object"
+      ? cloneSerializable(op.descriptor)
+      : {
+          _obj: "set",
+          _target: [
+            {
+              _ref: "textLayer",
+              _id: Number(layer.id)
+            }
+          ],
+          to: {
+            _obj: "textLayer",
+            textShape: [
+              {
+                _obj: "textShape",
+                char: {
+                  _enum: "char",
+                  _value: "onACurve"
+                },
+                orientation: {
+                  _enum: "orientation",
+                  _value: String(op.orientation || "horizontal")
+                },
+                path: Number.isFinite(Number(pathItem?.id))
+                  ? {
+                      _ref: "path",
+                      _id: Number(pathItem.id)
+                    }
+                  : {
+                      _ref: "path",
+                      _name: String(pathItem?.name || op.pathName || "")
+                    }
+              }
+            ]
+          },
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        };
+
+  const commands = op.commands ? op.commands : op.command ? [op.command] : [descriptor];
+  try {
+    await runBatchPlay(commands, op.options || {}, { op: "setTextOnPath" });
+  } catch (error) {
+    const hasExplicitCommands = Boolean(op.commands || op.command || op.descriptor);
+    if (hasExplicitCommands || op.strict === true) {
+      throw error;
+    }
+
+    const warning = sanitizeError(error).message;
+    pushEvent("warn", `setTextOnPath fallback: ${warning}`);
+    return {
+      layer: serializeLayer(layer),
+      refValue: buildLayerRefValue(layer),
+      path: serializePathItem(pathItem),
+      warning,
+      detail:
+        "Photoshop rejected the shorthand text-on-path descriptor in this build; pass a recorded descriptor via commands/descriptor for strict application."
+    };
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    path: serializePathItem(pathItem),
+    detail: `Applied text-on-path for '${layer.name}'${pathItem ? ` using '${pathItem.name}'` : ""}`
   };
 }
 
@@ -6919,6 +8050,10 @@ function registerOperations() {
   registerOp(["applyImage", "document.applyImage"], runApplyImage);
   registerOp(["splitChannels", "document.splitChannels"], runSplitChannels);
   registerOp(["sampleColor", "document.sampleColor"], runSampleColor);
+  registerOp(["createHistorySnapshot", "history.snapshot"], runCreateHistorySnapshot);
+  registerOp(["listHistoryStates", "history.list"], runListHistoryStates);
+  registerOp(["restoreHistoryState", "history.restore"], runRestoreHistoryState);
+  registerOp(["suspendHistory", "history.suspend"], runSuspendHistory);
 
   registerOp(["createLayer", "layer.create"], runCreateLayer);
   registerOp(["createPixelLayer", "layer.createPixel"], runCreatePixelLayer);
@@ -6940,6 +8075,10 @@ function registerOperations() {
   registerOp(["bringLayerToFront", "layer.bringToFront"], runBringLayerToFront);
   registerOp(["sendLayerToBack", "layer.sendToBack"], runSendLayerToBack);
   registerOp(["mergeLayer", "mergeLayers", "layer.merge"], runMergeLayer);
+  registerOp(["createArtboard", "artboard.create"], runCreateArtboard);
+  registerOp(["resizeArtboard", "artboard.resize"], runResizeArtboard);
+  registerOp(["reorderArtboards", "artboard.reorder"], runReorderArtboards);
+  registerOp(["exportArtboards", "artboard.export"], runExportArtboards);
   registerOp(["rasterizeLayer", "layer.rasterize"], runRasterizeLayer);
   registerOp(["linkLayers", "layer.link"], runLinkLayers);
   registerOp(["unlinkLayer", "layer.unlink"], runUnlinkLayer);
@@ -6951,6 +8090,8 @@ function registerOperations() {
   registerOp(["transformLayer", "layer.transform"], runTransformLayer);
   registerOp(["alignLayers", "layer.align"], runAlignLayers);
   registerOp(["distributeLayers", "layer.distribute"], runDistributeLayers);
+  registerOp(["autoAlignLayers", "layer.autoAlign"], runAutoAlignLayers);
+  registerOp(["autoBlendLayers", "layer.autoBlend"], runAutoBlendLayers);
   registerOp(["translateLayer", "layer.translate"], runTranslateLayer);
   registerOp(["scaleLayer", "layer.scale"], runScaleLayer);
   registerOp(["rotateLayer", "layer.rotate"], runRotateLayer);
@@ -6974,6 +8115,9 @@ function registerOperations() {
   registerOp(["contractSelection", "selection.contract"], runContractSelection);
   registerOp(["growSelection", "selection.grow"], runGrowSelection);
   registerOp(["smoothSelection", "selection.smooth"], runSmoothSelection);
+  registerOp(["selectSubject", "selection.subject"], runSelectSubject);
+  registerOp(["selectColorRange", "selection.colorRange"], runSelectColorRange);
+  registerOp(["refineSelection", "selection.refine"], runRefineSelection);
   registerOp(["selectRectangle", "selection.selectRectangle"], runSelectRectangle);
   registerOp(["selectEllipse", "selection.selectEllipse"], runSelectEllipse);
   registerOp(["selectPolygon", "selection.selectPolygon"], runSelectPolygon);
@@ -6985,6 +8129,8 @@ function registerOperations() {
   registerOp(["saveSelectionTo", "selection.saveTo"], runSaveSelectionTo);
   registerOp(["loadSelection", "selection.load"], runLoadSelection);
   registerOp(["createPath", "path.create"], runCreatePath);
+  registerOp(["createPathFromPoints", "path.createFromPoints"], runCreatePathFromPoints);
+  registerOp(["setPathPoints", "path.setPoints"], runSetPathPoints);
   registerOp(["deletePath", "path.delete", "path.remove"], runDeletePath);
   registerOp(["makeWorkPathFromSelection", "path.makeWorkPath", "selection.makeWorkPath"], runMakeWorkPathFromSelection);
   registerOp(["makeSelectionFromPath", "path.makeSelection"], runMakeSelectionFromPath);
@@ -7000,6 +8146,8 @@ function registerOperations() {
   registerOp(["applyLayerMask", "layerMask.apply"], runApplyLayerMask);
   registerOp(["createClippingMask", "layerMask.clip"], runCreateClippingMask);
   registerOp(["releaseClippingMask", "layerMask.unclip"], runReleaseClippingMask);
+  registerOp(["createVectorMask", "vectorMask.create", "layerMask.vectorCreate"], runCreateVectorMask);
+  registerOp(["deleteVectorMask", "vectorMask.delete", "layerMask.vectorDelete"], runDeleteVectorMask);
   registerOp(["setLayerEffects", "layer.effects"], runSetLayerEffects);
 
   registerOp(["createAdjustmentLayer", "adjustment.create"], runCreateAdjustmentLayer);
@@ -7017,10 +8165,15 @@ function registerOperations() {
   registerOp(["applyMinimum", "filter.minimum"], runApplyMinimum);
   registerOp(["applyMaximum", "filter.maximum"], runApplyMaximum);
   registerOp(["applyDustAndScratches", "filter.dustAndScratches"], runApplyDustAndScratches);
+  registerOp(["contentAwareFill", "contentAware.fill"], runContentAwareFill);
+  registerOp(["contentAwareScale", "contentAware.scale"], runContentAwareScale);
+  registerOp(["contentAwareMove", "contentAware.move"], runContentAwareMove);
 
   registerOp(["createTextLayer", "text.create"], runCreateTextLayer);
   registerOp(["setText", "text.set"], runSetText);
   registerOp(["setTextStyle", "text.style"], runSetTextStyle);
+  registerOp(["setTextWarp", "text.warp"], runSetTextWarp);
+  registerOp(["setTextOnPath", "text.onPath"], runSetTextOnPath);
   registerOp(["createShapeLayer", "shape.create"], runCreateShapeLayer);
 
   registerOp(["export", "document.export", "render"], runExport);
@@ -7355,7 +8508,11 @@ function validateResolvedOperation(opName, op, refs) {
 
   if (OP_REQUIRES_LAYER_TARGET.has(opName)) {
     try {
-      const layer = findLayer(op?.target, refs);
+      const targetValue =
+        opName === "resizeArtboard" || opName === "reorderArtboards"
+          ? op?.target || op?.artboard || op?.layer || op?.artboardName || op?.artboardId
+          : op?.target;
+      const layer = findLayer(targetValue, refs);
       if (!layer) {
         throw new Error("target layer was not found");
       }
@@ -7424,6 +8581,18 @@ function validateResolvedOperation(opName, op, refs) {
     throw new Error("batchPlay requires commands[] or command/descriptor");
   }
 
+  if (opName === "exportArtboards" && !opHasAnyField(op, ["outputDir", "commands", "command", "descriptor"])) {
+    throw new Error("exportArtboards requires outputDir or commands/command/descriptor");
+  }
+
+  if (opName === "suspendHistory" && !opHasAnyField(op, ["name", "historyStateName"])) {
+    throw new Error("suspendHistory requires name/historyStateName");
+  }
+
+  if (opName === "suspendHistory" && !opHasAnyField(op, ["commands", "command", "descriptor"])) {
+    throw new Error("suspendHistory requires commands[] or command/descriptor");
+  }
+
   if ((opName === "export" || opName === "exportDocument" || opName === "exportLayer") && !opHasAnyField(op, ["output"])) {
     throw new Error(`${opName} requires output`);
   }
@@ -7470,6 +8639,20 @@ function validateResolvedOperation(opName, op, refs) {
     throw new Error("setAdjustmentLayer requires adjustment descriptor or kind/type/settings");
   }
 
+  if (
+    opName === "setTextWarp" &&
+    !opHasAnyField(op, ["style", "warpStyle", "bend", "warpValue", "horizontalDistortion", "warpPerspective", "verticalDistortion", "warpPerspectiveOther", "orientation"])
+  ) {
+    throw new Error("setTextWarp requires style/bend/horizontalDistortion/verticalDistortion/orientation");
+  }
+
+  if (
+    opName === "setTextOnPath" &&
+    !opHasAnyField(op, ["path", "pathName", "pathId", "targetPath", "commands", "command", "descriptor"])
+  ) {
+    throw new Error("setTextOnPath requires path/pathName/pathId/targetPath or commands/command/descriptor");
+  }
+
   if ((opName === "selectRectangle" || opName === "selectEllipse") && (!op?.bounds || typeof op.bounds !== "object")) {
     throw new Error(`${opName} requires bounds`);
   }
@@ -7483,6 +8666,7 @@ function validateResolvedOperation(opName, op, refs) {
 
   if (
     (opName === "deletePath" ||
+      opName === "setPathPoints" ||
       opName === "makeSelectionFromPath" ||
       opName === "fillPath" ||
       opName === "strokePath" ||
@@ -7490,6 +8674,10 @@ function validateResolvedOperation(opName, op, refs) {
     !opHasAnyField(op, ["path", "target", "pathName", "pathId"])
   ) {
     throw new Error(`${opName} requires path/target/pathName/pathId`);
+  }
+
+  if (opName === "createPathFromPoints" && (!Array.isArray(op?.points) || op.points.length < 2)) {
+    throw new Error("createPathFromPoints requires points[2+] array");
   }
 
   if (opName === "addGuide" && !opHasAnyField(op, ["position", "coordinate", "value"])) {
@@ -7509,6 +8697,10 @@ function validateResolvedOperation(opName, op, refs) {
 
   if (opName === "playActionSet" && !opHasAnyField(op, ["actionSet", "set", "name"])) {
     throw new Error("playActionSet requires actionSet/set/name");
+  }
+
+  if (opName === "restoreHistoryState" && !opHasAnyField(op, ["historyStateId", "id", "historyStateName", "name"])) {
+    throw new Error("restoreHistoryState requires historyStateId/id/historyStateName/name");
   }
 
   if ((opName === "getLayerMaskPixels" || opName === "putLayerMaskPixels") && !opHasAnyField(op, ["target"])) {

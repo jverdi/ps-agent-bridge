@@ -118,6 +118,35 @@ const expectedExtendedOps = [
   "closeDocument"
 ].sort();
 
+const expectedWave2Ops = [
+  "createDocument",
+  "createLayer",
+  "createTextLayer",
+  "createPathFromPoints",
+  "setPathPoints",
+  "setTextWarp",
+  "setTextOnPath",
+  "createArtboard",
+  "resizeArtboard",
+  "reorderArtboards",
+  "selectSubject",
+  "selectColorRange",
+  "refineSelection",
+  "createVectorMask",
+  "deleteVectorMask",
+  "autoAlignLayers",
+  "autoBlendLayers",
+  "contentAwareFill",
+  "contentAwareScale",
+  "contentAwareMove",
+  "createHistorySnapshot",
+  "listHistoryStates",
+  "restoreHistoryState",
+  "suspendHistory",
+  "exportArtboards",
+  "closeDocument"
+].sort();
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -361,6 +390,39 @@ test("applies expanded first-class capability payload for new operation families
     assert.ok(refs.adj, "expected adj ref in apply result");
     assert.ok(refs.pathA, "expected pathA ref in apply result");
     assert.ok(refs.splitDoc, "expected splitDoc ref in apply result");
+  });
+});
+
+test("applies wave-2 prioritized capability payload across artboards/selection/vector/composite/history/text ops", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const payload = await readFixture("wave2-priority-capabilities.json");
+    const opNames = (payload.ops as Array<{ op: string }>).map((item) => item.op);
+    const uniqueNames = [...new Set(opNames)].sort();
+    assert.deepEqual(uniqueNames, expectedWave2Ops, "fixture must enumerate every wave-2 prioritized operation");
+
+    const apply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("wave2-priority-capabilities.json")]);
+    assertSuccess(apply, "op apply wave2-priority-capabilities");
+
+    const applyJson = apply.json as any;
+    assert.equal(applyJson.result.transactionId, "wave2-priority-001");
+    assert.equal(applyJson.result.applied, payload.ops.length);
+    assert.equal(applyJson.result.failed ?? 0, 0);
+    assert.equal((applyJson.result.failures ?? []).length, 0);
+    assert.equal(Boolean(applyJson.result.aborted), false);
+
+    const refs = applyJson.result.refs ?? {};
+    assert.ok(refs.docA, "expected docA ref in apply result");
+    assert.ok(refs.base, "expected base ref in apply result");
+    assert.ok(refs.headline, "expected headline ref in apply result");
+    assert.ok(refs.curvePath, "expected curvePath ref in apply result");
+    assert.ok(refs.ab1, "expected ab1 ref in apply result");
+    assert.ok(refs.snapshot1, "expected snapshot1 ref in apply result");
   });
 });
 

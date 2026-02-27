@@ -20,6 +20,10 @@ export const GENERATED_OPERATION_CATALOG = [
       "applyImage",
       "splitChannels",
       "sampleColor",
+      "createHistorySnapshot",
+      "listHistoryStates",
+      "restoreHistoryState",
+      "suspendHistory",
       "flattenDocument",
       "mergeVisible"
     ]
@@ -48,6 +52,9 @@ export const GENERATED_OPERATION_CATALOG = [
       "bringLayerToFront",
       "sendLayerToBack",
       "mergeLayer",
+      "createArtboard",
+      "resizeArtboard",
+      "reorderArtboards",
       "rasterizeLayer",
       "linkLayers",
       "unlinkLayer",
@@ -63,6 +70,8 @@ export const GENERATED_OPERATION_CATALOG = [
       "transformLayer",
       "alignLayers",
       "distributeLayers",
+      "autoAlignLayers",
+      "autoBlendLayers",
       "translateLayer",
       "scaleLayer",
       "rotateLayer",
@@ -91,6 +100,9 @@ export const GENERATED_OPERATION_CATALOG = [
       "contractSelection",
       "growSelection",
       "smoothSelection",
+      "selectSubject",
+      "selectColorRange",
+      "refineSelection",
       "selectRectangle",
       "selectEllipse",
       "selectPolygon",
@@ -102,6 +114,8 @@ export const GENERATED_OPERATION_CATALOG = [
       "saveSelectionTo",
       "loadSelection",
       "createPath",
+      "createPathFromPoints",
+      "setPathPoints",
       "deletePath",
       "makeWorkPathFromSelection",
       "makeSelectionFromPath",
@@ -117,7 +131,9 @@ export const GENERATED_OPERATION_CATALOG = [
       "deleteLayerMask",
       "applyLayerMask",
       "createClippingMask",
-      "releaseClippingMask"
+      "releaseClippingMask",
+      "createVectorMask",
+      "deleteVectorMask"
     ]
   },
   {
@@ -126,6 +142,8 @@ export const GENERATED_OPERATION_CATALOG = [
       "createTextLayer",
       "setText",
       "setTextStyle",
+      "setTextWarp",
+      "setTextOnPath",
       "createShapeLayer"
     ]
   },
@@ -146,7 +164,10 @@ export const GENERATED_OPERATION_CATALOG = [
       "applyMedianNoise",
       "applyMinimum",
       "applyMaximum",
-      "applyDustAndScratches"
+      "applyDustAndScratches",
+      "contentAwareFill",
+      "contentAwareScale",
+      "contentAwareMove"
     ]
   },
   {
@@ -156,6 +177,7 @@ export const GENERATED_OPERATION_CATALOG = [
       "exportDocument",
       "exportLayer",
       "exportLayersByName",
+      "exportArtboards",
       "getPixels",
       "putPixels",
       "getSelectionPixels",
@@ -347,6 +369,46 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`docRef`, `position`, `target`, `x`, `y`",
     "notes": "",
     "example": "{\n  \"op\": \"sampleColor\",\n  \"x\": 220,\n  \"y\": 340\n}"
+  },
+  {
+    "name": "createHistorySnapshot",
+    "aliases": [
+      "history.snapshot"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `name`, `snapshotName`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"createHistorySnapshot\",\n  \"name\": \"Before Retouch\"\n}"
+  },
+  {
+    "name": "listHistoryStates",
+    "aliases": [
+      "history.list"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"listHistoryStates\"\n}"
+  },
+  {
+    "name": "restoreHistoryState",
+    "aliases": [
+      "history.restore"
+    ],
+    "required": "`historyStateId/id/historyStateName/name`",
+    "supportedArgs": "`docRef`, `historyStateId`, `historyStateName`, `id`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"restoreHistoryState\",\n  \"historyStateName\": \"Before Retouch\"\n}"
+  },
+  {
+    "name": "suspendHistory",
+    "aliases": [
+      "history.suspend"
+    ],
+    "required": "`name/historyStateName`, `commands[] (or command/descriptor)`",
+    "supportedArgs": "`commands`, `command`, `descriptor`, `historyStateName`, `name`, `options`",
+    "notes": "Wraps descriptors in one named history state where supported by Photoshop.",
+    "example": "{\n  \"op\": \"suspendHistory\",\n  \"name\": \"Batch Style Update\",\n  \"commands\": [\n    {\n      \"_obj\": \"set\",\n      \"_target\": [\n        {\n          \"_ref\": \"layer\",\n          \"_enum\": \"ordinal\",\n          \"_value\": \"targetEnum\"\n        }\n      ],\n      \"to\": {\n        \"_obj\": \"layer\",\n        \"opacity\": {\n          \"_unit\": \"percentUnit\",\n          \"_value\": 80\n        }\n      }\n    }\n  ]\n}"
   },
   {
     "name": "flattenDocument",
@@ -656,6 +718,46 @@ export const GENERATED_OPERATION_ENTRIES = [
     "example": "{\n  \"op\": \"deleteLayerComp\",\n  \"layerComp\": \"Hero Variant\"\n}"
   },
   {
+    "name": "createArtboard",
+    "aliases": [
+      "artboard.create"
+    ],
+    "required": "None",
+    "supportedArgs": "`bounds`, `docRef`, `frame`, `height`, `name`, `rect`, `target`, `width`, `x`, `y`",
+    "notes": "If no bounds/frame/rect are supplied, the current document bounds are used.",
+    "example": "{\n  \"op\": \"createArtboard\",\n  \"name\": \"Mobile\",\n  \"x\": 0,\n  \"y\": 0,\n  \"width\": 1080,\n  \"height\": 1920\n}"
+  },
+  {
+    "name": "resizeArtboard",
+    "aliases": [
+      "artboard.resize"
+    ],
+    "required": "`target/artboard`, plus `bounds/frame/rect` or `x,y,width,height`",
+    "supportedArgs": "`artboard`, `artboardId`, `artboardName`, `bounds`, `frame`, `height`, `rect`, `target`, `width`, `x`, `y`",
+    "notes": "",
+    "example": "{\n  \"op\": \"resizeArtboard\",\n  \"target\": {\n    \"layerName\": \"Mobile\"\n  },\n  \"width\": 1200,\n  \"height\": 1920,\n  \"x\": 0,\n  \"y\": 0\n}"
+  },
+  {
+    "name": "reorderArtboards",
+    "aliases": [
+      "artboard.reorder"
+    ],
+    "required": "`target/artboard`, plus one of `at`, `relativeTo+placement`, `to(front/back)`",
+    "supportedArgs": "`artboard`, `artboardId`, `artboardName`, `at`, `by`, `parent`, `placement`, `relativeTo`, `target`, `to`",
+    "notes": "",
+    "example": "{\n  \"op\": \"reorderArtboards\",\n  \"target\": {\n    \"layerName\": \"Mobile\"\n  },\n  \"to\": \"front\"\n}"
+  },
+  {
+    "name": "exportArtboards",
+    "aliases": [
+      "artboard.export"
+    ],
+    "required": "`outputDir` (or `commands[]/command/descriptor`)",
+    "supportedArgs": "`command`, `commands`, `descriptor`, `format`, `options`, `outputDir`",
+    "notes": "Without explicit descriptors, this op uses a safe fallback export path; pass descriptor(s) for host-specific per-artboard export behavior.",
+    "example": "{\n  \"op\": \"exportArtboards\",\n  \"outputDir\": \"./tmp/artboards\",\n  \"format\": \"png\"\n}"
+  },
+  {
     "name": "transformLayer",
     "aliases": [
       "layer.transform"
@@ -684,6 +786,26 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`targets`, `axis`, `type`",
     "notes": "",
     "example": "{\n  \"op\": \"distributeLayers\",\n  \"axis\": \"horizontal\",\n  \"targets\": [\n    {\n      \"layerName\": \"Card 1\"\n    },\n    {\n      \"layerName\": \"Card 2\"\n    },\n    {\n      \"layerName\": \"Card 3\"\n    }\n  ]\n}"
+  },
+  {
+    "name": "autoAlignLayers",
+    "aliases": [
+      "layer.autoAlign"
+    ],
+    "required": "at least 2 layers via `targets[]` or current active selection",
+    "supportedArgs": "`mode`, `projection`, `targets`, `using`",
+    "notes": "`mode/projection` supports `auto`, `perspective`, `cylindrical`, `spherical`, `reposition`.",
+    "example": "{\n  \"op\": \"autoAlignLayers\",\n  \"mode\": \"auto\",\n  \"targets\": [\n    {\n      \"layerName\": \"Frame 01\"\n    },\n    {\n      \"layerName\": \"Frame 02\"\n    }\n  ]\n}"
+  },
+  {
+    "name": "autoBlendLayers",
+    "aliases": [
+      "layer.autoBlend"
+    ],
+    "required": "at least 2 layers via `targets[]` or current active selection",
+    "supportedArgs": "`contentAwareFillTransparentAreas`, `mode`, `seamlessTonesAndColors`, `targets`",
+    "notes": "`mode` supports `panorama` and `stackImages`.",
+    "example": "{\n  \"op\": \"autoBlendLayers\",\n  \"mode\": \"panorama\",\n  \"seamlessTonesAndColors\": true,\n  \"contentAwareFillTransparentAreas\": true,\n  \"targets\": [\n    {\n      \"layerName\": \"Frame 01\"\n    },\n    {\n      \"layerName\": \"Frame 02\"\n    }\n  ]\n}"
   },
   {
     "name": "translateLayer",
@@ -867,6 +989,36 @@ export const GENERATED_OPERATION_ENTRIES = [
     "example": "{\n  \"op\": \"smoothSelection\",\n  \"radius\": 6\n}"
   },
   {
+    "name": "selectSubject",
+    "aliases": [
+      "selection.subject"
+    ],
+    "required": "None",
+    "supportedArgs": "`allLayers`, `docRef`, `sampleAllLayers`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"selectSubject\",\n  \"sampleAllLayers\": true\n}"
+  },
+  {
+    "name": "selectColorRange",
+    "aliases": [
+      "selection.colorRange"
+    ],
+    "required": "None (or pass `descriptor`)",
+    "supportedArgs": "`color`, `descriptor`, `docRef`, `fuzziness`, `invert`, `localizedColorClusters`, `options`, `sampledColor`, `strict`, `target`",
+    "notes": "Pass `descriptor` for advanced/host-specific Color Range options. Shorthand mode is best-effort; set `strict: true` to fail when Photoshop rejects shorthand descriptors.",
+    "example": "{\n  \"op\": \"selectColorRange\",\n  \"color\": \"#22c55e\",\n  \"fuzziness\": 40\n}"
+  },
+  {
+    "name": "refineSelection",
+    "aliases": [
+      "selection.refine"
+    ],
+    "required": "None (or pass `descriptor`)",
+    "supportedArgs": "`contrast`, `decontaminateAmount`, `decontaminateColors`, `descriptor`, `docRef`, `feather`, `options`, `output`, `outputTo`, `radius`, `shiftEdge`, `smartRadius`, `smooth`, `strict`, `target`",
+    "notes": "Uses Photoshop refine-edge behavior; pass `descriptor` for full host-specific control. Shorthand mode is best-effort; set `strict: true` to fail when Photoshop rejects shorthand descriptors.",
+    "example": "{\n  \"op\": \"refineSelection\",\n  \"radius\": 2,\n  \"smooth\": 4,\n  \"feather\": 0.8,\n  \"contrast\": 10,\n  \"shiftEdge\": -5,\n  \"output\": \"selection\"\n}"
+  },
+  {
     "name": "selectRectangle",
     "aliases": [
       "selection.selectRectangle"
@@ -976,6 +1128,26 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`docRef`, `name`, `tolerance`",
     "notes": "First-class `createPath` builds a work path from the current selection.",
     "example": "{\n  \"op\": \"createPath\",\n  \"name\": \"Subject Path\",\n  \"tolerance\": 2\n}"
+  },
+  {
+    "name": "createPathFromPoints",
+    "aliases": [
+      "path.createFromPoints"
+    ],
+    "required": "`points[2+]`",
+    "supportedArgs": "`closed`, `docRef`, `name`, `operation`, `points`, `shapeOperation`, `target`",
+    "notes": "Each point accepts `{x,y}` (or `anchor:[x,y]`) with optional handles as either `leftDirection/rightDirection` or `backward/forward`, plus optional `smooth`/`kind`. If Photoshop rejects explicit point descriptors in your version, psagent falls back to a polygon-selection work-path conversion (straight segments only).",
+    "example": "{\n  \"op\": \"createPathFromPoints\",\n  \"name\": \"Diamond\",\n  \"closed\": true,\n  \"points\": [\n    { \"x\": 540, \"y\": 120 },\n    { \"x\": 920, \"y\": 540 },\n    { \"x\": 540, \"y\": 960 },\n    { \"x\": 160, \"y\": 540 }\n  ]\n}"
+  },
+  {
+    "name": "setPathPoints",
+    "aliases": [
+      "path.setPoints"
+    ],
+    "required": "`path/target`, `points[2+]`",
+    "supportedArgs": "`closed`, `docRef`, `name`, `operation`, `path`, `pathId`, `pathName`, `points`, `shapeOperation`, `target`",
+    "notes": "Point format matches `createPathFromPoints` (`x/y` or `anchor`, optional handle pairs, optional `smooth`/`kind`).",
+    "example": "{\n  \"op\": \"setPathPoints\",\n  \"path\": \"Diamond\",\n  \"points\": [\n    { \"x\": 540, \"y\": 160 },\n    { \"x\": 900, \"y\": 540 },\n    { \"x\": 540, \"y\": 920 },\n    { \"x\": 180, \"y\": 540 }\n  ]\n}"
   },
   {
     "name": "deletePath",
@@ -1162,6 +1334,28 @@ export const GENERATED_OPERATION_ENTRIES = [
     "example": "{\n  \"op\": \"releaseClippingMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  }\n}"
   },
   {
+    "name": "createVectorMask",
+    "aliases": [
+      "vectorMask.create",
+      "layerMask.vectorCreate"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "`path`, `pathId`, `pathName`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"createVectorMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  },\n  \"path\": \"Subject Path\"\n}"
+  },
+  {
+    "name": "deleteVectorMask",
+    "aliases": [
+      "vectorMask.delete",
+      "layerMask.vectorDelete"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "No op-specific args",
+    "notes": "",
+    "example": "{\n  \"op\": \"deleteVectorMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  }\n}"
+  },
+  {
     "name": "createAdjustmentLayer",
     "aliases": [
       "adjustment.create"
@@ -1314,6 +1508,36 @@ export const GENERATED_OPERATION_ENTRIES = [
     "example": "{\n  \"op\": \"applyDustAndScratches\",\n  \"target\": {\n    \"layerName\": \"Texture\"\n  },\n  \"radius\": 2,\n  \"threshold\": 4\n}"
   },
   {
+    "name": "contentAwareFill",
+    "aliases": [
+      "contentAware.fill"
+    ],
+    "required": "active selection (or pass `descriptor` with custom behavior)",
+    "supportedArgs": "`colorAdaptation`, `descriptor`, `docRef`, `mirror`, `options`, `rotationAdaptation`, `scale`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"contentAwareFill\",\n  \"colorAdaptation\": true,\n  \"rotationAdaptation\": false\n}"
+  },
+  {
+    "name": "contentAwareScale",
+    "aliases": [
+      "contentAware.scale"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "`descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`",
+    "notes": "",
+    "example": "{\n  \"op\": \"contentAwareScale\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"scaleX\": 95,\n  \"scaleY\": 95\n}"
+  },
+  {
+    "name": "contentAwareMove",
+    "aliases": [
+      "contentAware.move"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "`adaptation`, `color`, `descriptor`, `dx`, `dy`, `horizontal`, `options`, `structure`, `target`, `vertical`, `x`, `y`",
+    "notes": "",
+    "example": "{\n  \"op\": \"contentAwareMove\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"x\": 24,\n  \"y\": -12,\n  \"adaptation\": \"veryStrict\"\n}"
+  },
+  {
     "name": "createTextLayer",
     "aliases": [
       "text.create"
@@ -1342,6 +1566,26 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`",
     "notes": "",
     "example": "{\n  \"op\": \"setTextStyle\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"font\": \"Avenir Next\",\n  \"textColor\": \"#f8fafc\",\n  \"alignment\": \"center\",\n  \"fontSize\": 64,\n  \"maxWidth\": 860,\n  \"overflow\": \"resize\"\n}"
+  },
+  {
+    "name": "setTextWarp",
+    "aliases": [
+      "text.warp"
+    ],
+    "required": "`target (or active layer)` and at least one warp field",
+    "supportedArgs": "`bend`, `horizontalDistortion`, `orientation`, `style`, `target`, `verticalDistortion`, `warpPerspective`, `warpPerspectiveOther`, `warpStyle`, `warpValue`",
+    "notes": "",
+    "example": "{\n  \"op\": \"setTextWarp\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"style\": \"arc\",\n  \"bend\": 24,\n  \"horizontalDistortion\": 0,\n  \"verticalDistortion\": 0\n}"
+  },
+  {
+    "name": "setTextOnPath",
+    "aliases": [
+      "text.onPath"
+    ],
+    "required": "`target (or active layer)` and `path/pathName/pathId` (or `commands[]/command/descriptor`)",
+    "supportedArgs": "`command`, `commands`, `descriptor`, `options`, `orientation`, `path`, `pathId`, `pathName`, `strict`, `target`, `targetPath`",
+    "notes": "Photoshop text-on-path descriptors vary by host build. The shorthand payload is best-effort; pass explicit `commands`/`descriptor` for deterministic behavior. Set `strict: true` to fail when shorthand application is rejected.",
+    "example": "{\n  \"op\": \"setTextOnPath\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"path\": \"Subject Path\",\n  \"orientation\": \"horizontal\"\n}"
   },
   {
     "name": "createShapeLayer",
@@ -1393,6 +1637,16 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`docRef`, `format`, `match`, `output`, `outputDir`",
     "notes": "",
     "example": "{\n  \"op\": \"exportLayersByName\",\n  \"match\": \"^(Hero|CTA)$\",\n  \"format\": \"png\",\n  \"outputDir\": \"./tmp/layers\"\n}"
+  },
+  {
+    "name": "exportArtboards",
+    "aliases": [
+      "artboard.export"
+    ],
+    "required": "`outputDir` (or `commands[]/command/descriptor`)",
+    "supportedArgs": "`command`, `commands`, `descriptor`, `format`, `options`, `outputDir`",
+    "notes": "For explicit multi-artboard export behavior across Photoshop versions, prefer `descriptor`/`commands`.",
+    "example": "{\n  \"op\": \"exportArtboards\",\n  \"outputDir\": \"./tmp/artboards\",\n  \"format\": \"png\"\n}"
   },
   {
     "name": "getPixels",

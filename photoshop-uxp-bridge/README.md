@@ -50,25 +50,34 @@ The executor supports the full bridge operation surface with DOM-first implement
 - Documents:
   - `createDocument`, `openDocument`, `duplicateDocument`, `saveDocument`, `closeDocument`
   - `resizeImage`, `resizeCanvas`, `cropDocument`, `trimDocument`, `rotateDocument`, `flattenDocument`, `mergeVisible`
+  - `changeDocumentMode`, `convertColorProfile`, `calculations`, `applyImage`, `splitChannels`, `sampleColor`
+  - `createHistorySnapshot`, `listHistoryStates`, `restoreHistoryState`, `suspendHistory`
 - Layers:
   - `createLayer`, `createPixelLayer`, `createGroup`, `groupLayers`
   - `deleteLayer`, `renameLayer`, `duplicateLayer`, `selectLayer`, `moveLayer`
   - `setLayerVisibility`, `setLayerOpacity`, `setBlendMode`, `bringLayerToFront`, `sendLayerToBack`
   - `mergeLayer`, `rasterizeLayer`, `linkLayers`, `unlinkLayer`
+  - `createArtboard`, `resizeArtboard`, `reorderArtboards`, `exportArtboards`
 - Transform/layout:
-  - `transformLayer`, `translateLayer`, `scaleLayer`, `rotateLayer`, `flipLayer`, `skewLayer`
+  - `transformLayer`, `alignLayers`, `distributeLayers`, `autoAlignLayers`, `autoBlendLayers`
+  - `translateLayer`, `scaleLayer`, `rotateLayer`, `flipLayer`, `skewLayer`
 - Smart object:
   - `convertToSmartObject`, `replaceSmartObject`, `relinkSmartObject`, `editSmartObject`
 - Selection/masks/filters:
   - `selectAll`, `deselect`, `inverseSelection`, `featherSelection`, `expandSelection`, `contractSelection`, `growSelection`, `smoothSelection`
+  - `selectSubject`, `selectColorRange`, `refineSelection`
   - `selectRectangle`, `selectEllipse`, `selectPolygon`, `selectLayerPixels`
-  - `createLayerMask`, `deleteLayerMask`, `applyLayerMask`
-  - `applyGaussianBlur`, `applyUnsharpMask`, `applySharpen`, `applyBlur`
+  - `createChannel`, `duplicateChannel`, `deleteChannel`, `saveSelection`, `loadSelection`
+  - `createPath`, `createPathFromPoints`, `setPathPoints`, `deletePath`, `makeWorkPathFromSelection`, `makeSelectionFromPath`, `fillPath`, `strokePath`, `makeClippingPath`
+  - `createLayerMask`, `deleteLayerMask`, `applyLayerMask`, `createClippingMask`, `releaseClippingMask`, `createVectorMask`, `deleteVectorMask`
+  - `applyGaussianBlur`, `applyUnsharpMask`, `applySharpen`, `applyBlur`, `applyAddNoise`, `applyMotionBlur`, `applySmartBlur`, `applyHighPass`, `applyMedianNoise`, `applyMinimum`, `applyMaximum`, `applyDustAndScratches`
+  - `contentAwareFill`, `contentAwareScale`, `contentAwareMove`
 - Shapes/text:
-  - `createTextLayer`, `setText`, `setTextStyle`, `createShapeLayer`
+  - `createTextLayer`, `setText`, `setTextStyle`, `setTextWarp`, `setTextOnPath`, `createShapeLayer`
 - Export and raw action descriptors:
-  - `export`
-  - `batchPlay`
+  - `export`, `exportDocument`, `exportLayer`, `exportLayersByName`, `exportArtboards`
+  - `getPixels`, `putPixels`, `getSelectionPixels`, `putSelectionPixels`, `getLayerMaskPixels`, `putLayerMaskPixels`, `encodeImageData`
+  - `playAction`, `playActionSet`, `batchPlay`
 
 Aliases like `doc.*`, `layer.*`, `selection.*`, `smartObject.*`, and `filter.*` are normalized to canonical ops.
 

@@ -11,7 +11,7 @@ import type {
   PhotoshopOperation
 } from "../types.js";
 
-type LayerType = "pixel" | "text" | "smartObject" | "group" | "shape" | "adjustment";
+type LayerType = "pixel" | "text" | "smartObject" | "group" | "shape" | "adjustment" | "artboard";
 
 interface Layer {
   id: string;
@@ -89,6 +89,13 @@ interface LayerCompState {
   capturedAt: string;
 }
 
+interface HistoryStateRecord {
+  id: string;
+  name: string;
+  snapshot?: boolean;
+  createdAt: string;
+}
+
 interface ExportRecord {
   id: string;
   tx: string;
@@ -120,6 +127,8 @@ interface DocumentState {
   paths: Record<string, PathItemState>;
   guides: GuideState[];
   layerComps: Record<string, LayerCompState>;
+  historyStates: HistoryStateRecord[];
+  activeHistoryStateId?: string;
   selection: string[];
   selectionChannelId?: string;
   selectionPathId?: string;
@@ -145,6 +154,7 @@ interface MockSnapshot {
     path: number;
     guide: number;
     layerComp: number;
+    historyState: number;
     export: number;
     checkpoint: number;
     batchPlay: number;
@@ -187,6 +197,7 @@ const state = {
     path: 0,
     guide: 0,
     layerComp: 0,
+    historyState: 0,
     export: 0,
     checkpoint: 0,
     batchPlay: 0,
@@ -238,6 +249,11 @@ function nextLayerCompId(): string {
   return `layercomp_${state.counters.layerComp.toString().padStart(4, "0")}`;
 }
 
+function nextHistoryStateId(): string {
+  state.counters.historyState += 1;
+  return `historystate_${state.counters.historyState.toString().padStart(4, "0")}`;
+}
+
 function nextExportId(): string {
   state.counters.export += 1;
   return `export_${state.counters.export.toString().padStart(4, "0")}`;
@@ -283,6 +299,12 @@ function buildInitialDocument(ref: string): DocumentState {
       replaceCount: 0
     }
   };
+  const initialHistoryState: HistoryStateRecord = {
+    id: nextHistoryStateId(),
+    name: "Open",
+    snapshot: false,
+    createdAt: nextTimestamp()
+  };
 
   return {
     ref,
@@ -305,6 +327,8 @@ function buildInitialDocument(ref: string): DocumentState {
     paths: {},
     guides: [],
     layerComps: {},
+    historyStates: [initialHistoryState],
+    activeHistoryStateId: initialHistoryState.id,
     selection: [],
     selectionChannelId: undefined,
     selectionPathId: undefined,
@@ -568,6 +592,42 @@ function uniqueIds(ids: string[]): string[] {
     }
   }
   return out;
+}
+
+function appendHistoryState(doc: DocumentState, name: string, snapshot = false): HistoryStateRecord {
+  const stateRecord: HistoryStateRecord = {
+    id: nextHistoryStateId(),
+    name: name.trim() || "History State",
+    snapshot,
+    createdAt: nextTimestamp()
+  };
+  doc.historyStates.push(stateRecord);
+  doc.activeHistoryStateId = stateRecord.id;
+  return stateRecord;
+}
+
+function resolveHistoryState(doc: DocumentState, target: unknown): HistoryStateRecord {
+  if (target === undefined || target === null || target === "") {
+    const active = doc.historyStates.find((state) => state.id === doc.activeHistoryStateId);
+    if (!active) {
+      throw new Error("history state not found");
+    }
+    return active;
+  }
+
+  const token = String(target).trim();
+  if (!token) {
+    throw new Error("history state target cannot be empty");
+  }
+  const byId = doc.historyStates.find((state) => state.id === token);
+  if (byId) {
+    return byId;
+  }
+  const byName = doc.historyStates.find((state) => state.name === token);
+  if (byName) {
+    return byName;
+  }
+  throw new Error(`history state not found: ${token}`);
 }
 
 function resolveLayersFromTargets(doc: DocumentState, targets: LayerReference[] | undefined, refs: Record<string, string>): Layer[] {
@@ -926,6 +986,25 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       const b = (r + g) % 256;
       return { refValue: doc.ref, message: `sampleColor rgb(${r},${g},${b})` };
     }
+    case "createHistorySnapshot": {
+      const name = String((op as any).name ?? (op as any).snapshotName ?? `Snapshot ${doc.historyStates.length + 1}`);
+      const historyState = appendHistoryState(doc, name, true);
+      return { refValue: historyState.id, message: `createHistorySnapshot ${historyState.name}` };
+    }
+    case "listHistoryStates": {
+      return { refValue: doc.activeHistoryStateId ?? doc.ref, message: `listHistoryStates count=${doc.historyStates.length}` };
+    }
+    case "restoreHistoryState": {
+      const target = (op as any).historyStateId ?? (op as any).id ?? (op as any).historyStateName ?? (op as any).name;
+      const historyState = resolveHistoryState(doc, target);
+      doc.activeHistoryStateId = historyState.id;
+      return { refValue: historyState.id, message: `restoreHistoryState ${historyState.name}` };
+    }
+    case "suspendHistory": {
+      const name = String((op as any).name ?? (op as any).historyStateName ?? "Suspend History");
+      const historyState = appendHistoryState(doc, name, false);
+      return { refValue: historyState.id, message: `suspendHistory ${historyState.name}` };
+    }
     case "createLayer": {
       const type = op.kind ?? "pixel";
       const layer: Layer = {
@@ -1183,6 +1262,46 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       } as typeof layer.text;
       return { refValue: layer.id, message: `setTextStyle ${layer.id}` };
     }
+    case "setTextWarp": {
+      const layer = resolveLayer(doc, (op as any).target, refs);
+      if (layer.type !== "text") {
+        throw new Error(`setTextWarp target is not a text layer: ${layer.id}`);
+      }
+      if (!layer.text) {
+        layer.text = { content: "" };
+      }
+      layer.text = {
+        ...layer.text,
+        style: {
+          ...(layer.text as any).style,
+          warp: Object.fromEntries(
+            Object.entries(op).filter(([key]) => !["op", "target", "onError", "ref"].includes(key))
+          )
+        }
+      } as typeof layer.text;
+      return { refValue: layer.id, message: `setTextWarp ${layer.id}` };
+    }
+    case "setTextOnPath": {
+      const layer = resolveLayer(doc, (op as any).target, refs);
+      if (layer.type !== "text") {
+        throw new Error(`setTextOnPath target is not a text layer: ${layer.id}`);
+      }
+      const pathTarget = (op as any).path ?? (op as any).pathName ?? (op as any).targetPath;
+      if (pathTarget) {
+        const pathItem = resolvePath(doc, pathTarget, refs);
+        if (!layer.text) {
+          layer.text = { content: "" };
+        }
+        layer.text = {
+          ...layer.text,
+          style: {
+            ...(layer.text as any).style,
+            onPath: pathItem.name
+          }
+        } as typeof layer.text;
+      }
+      return { refValue: layer.id, message: `setTextOnPath ${layer.id}` };
+    }
     case "replaceSmartObject": {
       const layer = resolveLayer(doc, op.target, refs);
       const replaceCount = layer.smartObject?.replaceCount ?? 0;
@@ -1267,6 +1386,53 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       doc.selection = [mergedLayer.id];
       return { refValue: mergedLayer.id, message: `merged ${resolvedIds.length} layers` };
     }
+    case "createArtboard": {
+      const layer: Layer = {
+        ...defaultLayerBase(nextLayerId(), String((op as any).name || `Artboard ${state.counters.layer + 1}`), "artboard")
+      };
+      doc.layers[layer.id] = layer;
+      insertIntoParent(doc, layer.id, undefined, typeof (op as any).at === "number" ? Number((op as any).at) : undefined);
+      doc.selection = [layer.id];
+      return { refValue: layer.id, message: `createArtboard ${layer.name}` };
+    }
+    case "resizeArtboard": {
+      const layer = resolveLayer(
+        doc,
+        ((op as any).target ?? (op as any).artboard ?? (op as any).layer ?? (op as any).artboardName ?? (op as any).artboardId) as LayerReference,
+        refs
+      );
+      layer.transform = {
+        ...(layer.transform ?? {}),
+        artboardBounds: Object.fromEntries(
+          Object.entries(op).filter(([key]) =>
+            ["x", "y", "width", "height", "left", "top", "right", "bottom", "bounds", "frame", "rect"].includes(key)
+          )
+        )
+      };
+      return { refValue: layer.id, message: `resizeArtboard ${layer.name}` };
+    }
+    case "reorderArtboards": {
+      const layer = resolveLayer(
+        doc,
+        ((op as any).target ?? (op as any).artboard ?? (op as any).layer ?? (op as any).artboardName ?? (op as any).artboardId) as LayerReference,
+        refs
+      );
+      const destinationParentId = resolveParentLayerId(doc, (op as any).parent, refs);
+      insertIntoParent(doc, layer.id, destinationParentId, (op as any).at);
+      return { refValue: layer.id, message: `reorderArtboards ${layer.name}` };
+    }
+    case "exportArtboards": {
+      const outputDir = String((op as any).outputDir ?? "");
+      const format = String((op as any).format ?? "png") as "png" | "jpg";
+      const artboards = flattenLayers(doc).filter((layer) => layer.type === "artboard");
+      const records =
+        artboards.length > 0
+          ? artboards.map((layer) =>
+              appendExportRecord(doc, tx, format, `${outputDir}/${layer.name}.${format}`, "op.export", layer.id)
+            )
+          : [appendExportRecord(doc, tx, format, `${outputDir || "."}/${doc.ref}.${format}`, "op.export")];
+      return { refValue: records[0]?.id, message: `exportArtboards count=${records.length}` };
+    }
     case "flattenImage": {
       const flattenedLayer: Layer = {
         ...defaultLayerBase(nextLayerId(), op.name ?? "Flattened Image", "pixel")
@@ -1333,6 +1499,30 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       const layers = resolveLayersFromTargets(doc, op.targets, refs);
       const count = layers.length > 0 ? layers.length : doc.selection.length;
       return { refValue: doc.selection[0], message: `distributed ${count} layer(s)` };
+    }
+    case "autoAlignLayers": {
+      const layers = resolveLayersFromTargets(doc, (op as any).targets, refs);
+      const count = layers.length > 0 ? layers.length : doc.selection.length;
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        autoAlign: {
+          mode: (op as any).mode ?? (op as any).projection ?? "auto",
+          count
+        }
+      };
+      return { refValue: doc.selection[0], message: `autoAlignLayers ${count}` };
+    }
+    case "autoBlendLayers": {
+      const layers = resolveLayersFromTargets(doc, (op as any).targets, refs);
+      const count = layers.length > 0 ? layers.length : doc.selection.length;
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        autoBlend: {
+          mode: (op as any).mode ?? (op as any).blendMode ?? "panorama",
+          count
+        }
+      };
+      return { refValue: doc.selection[0], message: `autoBlendLayers ${count}` };
     }
     case "resizeCanvas": {
       if (typeof op.width === "number") {
@@ -1437,6 +1627,22 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       });
       return { refValue: target.id, message: `applyFilter ${canonicalFilterName} on ${target.id}` };
     }
+    case "contentAwareFill": {
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        contentAwareFill: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "onError", "ref"].includes(k)))
+      };
+      return { refValue: doc.ref, message: "contentAwareFill" };
+    }
+    case "contentAwareScale":
+    case "contentAwareMove": {
+      const target = resolveLayer(doc, (op as any).target, refs);
+      target.transform = {
+        ...(target.transform ?? {}),
+        [op.op]: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "target", "onError", "ref"].includes(k)))
+      };
+      return { refValue: target.id, message: `${op.op} ${target.id}` };
+    }
     case "addLayerMask": {
       const layer = resolveLayer(doc, op.target, refs);
       layer.mask = { enabled: true, applied: false };
@@ -1451,6 +1657,16 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       const layer = resolveLayer(doc, op.target, refs);
       layer.mask = { enabled: false, applied: true };
       return { refValue: layer.id, message: `applyLayerMask ${layer.id}` };
+    }
+    case "createVectorMask": {
+      const layer = resolveLayer(doc, op.target, refs);
+      layer.mask = { enabled: true, applied: false };
+      return { refValue: layer.id, message: `createVectorMask ${layer.id}` };
+    }
+    case "deleteVectorMask": {
+      const layer = resolveLayer(doc, op.target, refs);
+      delete layer.mask;
+      return { refValue: layer.id, message: `deleteVectorMask ${layer.id}` };
     }
     case "createChannel": {
       const channelId = nextChannelId();
@@ -1505,16 +1721,32 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       return { refValue: channel.id, message: `loadSelection ${channel.name}` };
     }
     case "createPath":
+    case "createPathFromPoints":
     case "makeWorkPathFromSelection": {
       const pathId = nextPathId();
       const pathItem: PathItemState = {
         id: pathId,
         name: typeof (op as any).name === "string" && (op as any).name.trim() ? (op as any).name.trim() : "Work Path",
-        madeFromSelectionAt: nextTimestamp()
+        madeFromSelectionAt: nextTimestamp(),
+        ...(Array.isArray((op as any).points)
+          ? {
+              fill: {
+                points: cloneDeep((op as any).points)
+              }
+            }
+          : {})
       };
       doc.paths[pathItem.id] = pathItem;
       doc.selectionPathId = pathItem.id;
       return { refValue: pathItem.id, message: `${op.op} ${pathItem.name}` };
+    }
+    case "setPathPoints": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      pathItem.fill = {
+        ...(pathItem.fill ?? {}),
+        points: cloneDeep((op as any).points ?? [])
+      };
+      return { refValue: pathItem.id, message: `setPathPoints ${pathItem.name}` };
     }
     case "deletePath": {
       const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
@@ -1594,6 +1826,29 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
     case "invertSelection": {
       doc.selectionInverted = !doc.selectionInverted;
       return { refValue: doc.ref, message: `invertSelection=${String(doc.selectionInverted)}` };
+    }
+    case "selectSubject": {
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        subject: {
+          sampleAllLayers: Boolean((op as any).sampleAllLayers ?? (op as any).allLayers ?? false)
+        }
+      };
+      return { refValue: doc.ref, message: "selectSubject" };
+    }
+    case "selectColorRange": {
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        colorRange: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "onError", "ref"].includes(k)))
+      };
+      return { refValue: doc.ref, message: "selectColorRange" };
+    }
+    case "refineSelection": {
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        refineSelection: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "onError", "ref"].includes(k)))
+      };
+      return { refValue: doc.ref, message: "refineSelection" };
     }
     case "playAction": {
       const actionName = String((op as any).action ?? (op as any).name ?? "");

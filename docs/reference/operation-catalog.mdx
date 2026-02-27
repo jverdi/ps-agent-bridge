@@ -26,6 +26,10 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`applyImage`](/reference/operation-arguments-and-examples#applyimage)
 - [`splitChannels`](/reference/operation-arguments-and-examples#splitchannels)
 - [`sampleColor`](/reference/operation-arguments-and-examples#samplecolor)
+- [`createHistorySnapshot`](/reference/operation-arguments-and-examples#createhistorysnapshot)
+- [`listHistoryStates`](/reference/operation-arguments-and-examples#listhistorystates)
+- [`restoreHistoryState`](/reference/operation-arguments-and-examples#restorehistorystate)
+- [`suspendHistory`](/reference/operation-arguments-and-examples#suspendhistory)
 - [`flattenDocument`](/reference/operation-arguments-and-examples#flattendocument) ([`flattenImage`](/reference/operation-arguments-and-examples#flattendocument) alias)
 - [`mergeVisible`](/reference/operation-arguments-and-examples#mergevisible)
 
@@ -52,6 +56,9 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`bringLayerToFront`](/reference/operation-arguments-and-examples#bringlayertofront)
 - [`sendLayerToBack`](/reference/operation-arguments-and-examples#sendlayertoback)
 - [`mergeLayer`](/reference/operation-arguments-and-examples#mergelayer) ([`mergeLayers`](/reference/operation-arguments-and-examples#mergelayer) alias)
+- [`createArtboard`](/reference/operation-arguments-and-examples#createartboard)
+- [`resizeArtboard`](/reference/operation-arguments-and-examples#resizeartboard)
+- [`reorderArtboards`](/reference/operation-arguments-and-examples#reorderartboards)
 - [`rasterizeLayer`](/reference/operation-arguments-and-examples#rasterizelayer)
 - [`linkLayers`](/reference/operation-arguments-and-examples#linklayers)
 - [`unlinkLayer`](/reference/operation-arguments-and-examples#unlinklayer)
@@ -65,6 +72,8 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`transformLayer`](/reference/operation-arguments-and-examples#transformlayer)
 - [`alignLayers`](/reference/operation-arguments-and-examples#alignlayers)
 - [`distributeLayers`](/reference/operation-arguments-and-examples#distributelayers)
+- [`autoAlignLayers`](/reference/operation-arguments-and-examples#autoalignlayers)
+- [`autoBlendLayers`](/reference/operation-arguments-and-examples#autoblendlayers)
 - [`translateLayer`](/reference/operation-arguments-and-examples#translatelayer)
 - [`scaleLayer`](/reference/operation-arguments-and-examples#scalelayer)
 - [`rotateLayer`](/reference/operation-arguments-and-examples#rotatelayer)
@@ -89,6 +98,9 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`contractSelection`](/reference/operation-arguments-and-examples#contractselection)
 - [`growSelection`](/reference/operation-arguments-and-examples#growselection)
 - [`smoothSelection`](/reference/operation-arguments-and-examples#smoothselection)
+- [`selectSubject`](/reference/operation-arguments-and-examples#selectsubject)
+- [`selectColorRange`](/reference/operation-arguments-and-examples#selectcolorrange)
+- [`refineSelection`](/reference/operation-arguments-and-examples#refineselection)
 - [`selectRectangle`](/reference/operation-arguments-and-examples#selectrectangle)
 - [`selectEllipse`](/reference/operation-arguments-and-examples#selectellipse)
 - [`selectPolygon`](/reference/operation-arguments-and-examples#selectpolygon)
@@ -100,6 +112,8 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`saveSelectionTo`](/reference/operation-arguments-and-examples#saveselectionto)
 - [`loadSelection`](/reference/operation-arguments-and-examples#loadselection)
 - [`createPath`](/reference/operation-arguments-and-examples#createpath)
+- [`createPathFromPoints`](/reference/operation-arguments-and-examples#createpathfrompoints)
+- [`setPathPoints`](/reference/operation-arguments-and-examples#setpathpoints)
 - [`deletePath`](/reference/operation-arguments-and-examples#deletepath)
 - [`makeWorkPathFromSelection`](/reference/operation-arguments-and-examples#makeworkpathfromselection)
 - [`makeSelectionFromPath`](/reference/operation-arguments-and-examples#makeselectionfrompath)
@@ -116,12 +130,16 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`applyLayerMask`](/reference/operation-arguments-and-examples#applylayermask)
 - [`createClippingMask`](/reference/operation-arguments-and-examples#createclippingmask)
 - [`releaseClippingMask`](/reference/operation-arguments-and-examples#releaseclippingmask)
+- [`createVectorMask`](/reference/operation-arguments-and-examples#createvectormask)
+- [`deleteVectorMask`](/reference/operation-arguments-and-examples#deletevectormask)
 
 ## Text and shapes
 
 - [`createTextLayer`](/reference/operation-arguments-and-examples#createtextlayer)
 - [`setText`](/reference/operation-arguments-and-examples#settext)
 - [`setTextStyle`](/reference/operation-arguments-and-examples#settextstyle)
+- [`setTextWarp`](/reference/operation-arguments-and-examples#settextwarp)
+- [`setTextOnPath`](/reference/operation-arguments-and-examples#settextonpath)
 - [`createShapeLayer`](/reference/operation-arguments-and-examples#createshapelayer)
 
 `setTextStyle` supports `text`, `fontSize`, `fontName`/`font`, text color (`textColor`/`color`), text alignment (`alignment`/`align`/`justification`), `position`, bounds fitting (`maxWidth`, `maxHeight`, `minFontSize`, `hardMinFontSize`), overflow handling (`overflow: "resize" | "clip"`, `ellipsis`), and overlap avoidance (`avoidOverlapWith`, `overlapGap`).
@@ -145,6 +163,9 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`applyMinimum`](/reference/operation-arguments-and-examples#applyminimum)
 - [`applyMaximum`](/reference/operation-arguments-and-examples#applymaximum)
 - [`applyDustAndScratches`](/reference/operation-arguments-and-examples#applydustandscratches)
+- [`contentAwareFill`](/reference/operation-arguments-and-examples#contentawarefill)
+- [`contentAwareScale`](/reference/operation-arguments-and-examples#contentawarescale)
+- [`contentAwareMove`](/reference/operation-arguments-and-examples#contentawaremove)
 
 ## Export and low-level actions
 
@@ -152,6 +173,7 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`exportDocument`](/reference/operation-arguments-and-examples#exportdocument)
 - [`exportLayer`](/reference/operation-arguments-and-examples#exportlayer)
 - [`exportLayersByName`](/reference/operation-arguments-and-examples#exportlayersbyname)
+- [`exportArtboards`](/reference/operation-arguments-and-examples#exportartboards)
 - [`getPixels`](/reference/operation-arguments-and-examples#getpixels)
 - [`putPixels`](/reference/operation-arguments-and-examples#putpixels)
 - [`getSelectionPixels`](/reference/operation-arguments-and-examples#getselectionpixels)
@@ -168,6 +190,7 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - BatchPlay errors are inspected for embedded descriptor errors and surfaced with indexed failure detail.
 - BatchPlay `textStyleRange[*].textStyle` replaces style objects; include full style fields when recoloring/re-styling text.
 - Layer-targeted export may use Photoshop-controlled filenames depending on command path.
+- `exportArtboards` defaults to a fallback document export when no descriptor/commands are provided.
 - Document save without output can skip to avoid Save As dialogs when no existing path is present.
 - `createTextLayer.position.y` is the text baseline, not glyph-top.
 - Keep dependent work in one transaction (`psagent op apply`) because active document focus can shift between separate CLI invocations.

@@ -269,6 +269,77 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `createHistorySnapshot`
+
+- Aliases: `history.snapshot`
+- Required: None
+- Supported args: `docRef`, `name`, `snapshotName`, `target`
+
+```json
+{
+  "op": "createHistorySnapshot",
+  "name": "Before Retouch"
+}
+```
+
+### `listHistoryStates`
+
+- Aliases: `history.list`
+- Required: None
+- Supported args: `docRef`, `target`
+
+```json
+{
+  "op": "listHistoryStates"
+}
+```
+
+### `restoreHistoryState`
+
+- Aliases: `history.restore`
+- Required: `historyStateId/id/historyStateName/name`
+- Supported args: `docRef`, `historyStateId`, `historyStateName`, `id`, `name`, `target`
+
+```json
+{
+  "op": "restoreHistoryState",
+  "historyStateName": "Before Retouch"
+}
+```
+
+### `suspendHistory`
+
+- Aliases: `history.suspend`
+- Required: `name/historyStateName`, `commands[] (or command/descriptor)`
+- Supported args: `commands`, `command`, `descriptor`, `historyStateName`, `name`, `options`
+- Notes: Wraps descriptors in one named history state where supported by Photoshop.
+
+```json
+{
+  "op": "suspendHistory",
+  "name": "Batch Style Update",
+  "commands": [
+    {
+      "_obj": "set",
+      "_target": [
+        {
+          "_ref": "layer",
+          "_enum": "ordinal",
+          "_value": "targetEnum"
+        }
+      ],
+      "to": {
+        "_obj": "layer",
+        "opacity": {
+          "_unit": "percentUnit",
+          "_value": 80
+        }
+      }
+    }
+  ]
+}
+```
+
 ### `flattenDocument`
 
 - Aliases: `flattenImage`, `document.flatten`
@@ -745,6 +816,74 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `createArtboard`
+
+- Aliases: `artboard.create`
+- Required: None
+- Supported args: `bounds`, `docRef`, `frame`, `height`, `name`, `rect`, `target`, `width`, `x`, `y`
+- Notes: If no bounds/frame/rect are supplied, the current document bounds are used.
+
+```json
+{
+  "op": "createArtboard",
+  "name": "Mobile",
+  "x": 0,
+  "y": 0,
+  "width": 1080,
+  "height": 1920
+}
+```
+
+### `resizeArtboard`
+
+- Aliases: `artboard.resize`
+- Required: `target/artboard`, plus `bounds/frame/rect` or `x,y,width,height`
+- Supported args: `artboard`, `artboardId`, `artboardName`, `bounds`, `frame`, `height`, `rect`, `target`, `width`, `x`, `y`
+
+```json
+{
+  "op": "resizeArtboard",
+  "target": {
+    "layerName": "Mobile"
+  },
+  "width": 1200,
+  "height": 1920,
+  "x": 0,
+  "y": 0
+}
+```
+
+### `reorderArtboards`
+
+- Aliases: `artboard.reorder`
+- Required: `target/artboard`, plus one of `at`, `relativeTo+placement`, `to(front/back)`
+- Supported args: `artboard`, `artboardId`, `artboardName`, `at`, `by`, `parent`, `placement`, `relativeTo`, `target`, `to`
+
+```json
+{
+  "op": "reorderArtboards",
+  "target": {
+    "layerName": "Mobile"
+  },
+  "to": "front"
+}
+```
+
+### `exportArtboards`
+
+- Aliases: `artboard.export`
+- Required: `outputDir` (or `commands[]/command/descriptor`)
+- Supported args: `command`, `commands`, `descriptor`, `format`, `options`, `outputDir`
+- Notes: Without explicit descriptors, this op uses a safe fallback export path; pass descriptor(s) for host-specific per-artboard export behavior.
+
+```json
+{
+  "op": "exportArtboards",
+  "outputDir": "./tmp/artboards",
+  "format": "png"
+}
+```
+
 ## Transforms and layout
 
 ### `transformLayer`
@@ -806,6 +945,52 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
     },
     {
       "layerName": "Card 3"
+    }
+  ]
+}
+```
+
+### `autoAlignLayers`
+
+- Aliases: `layer.autoAlign`
+- Required: at least 2 layers via `targets[]` or current active selection
+- Supported args: `mode`, `projection`, `targets`, `using`
+- Notes: `mode/projection` supports `auto`, `perspective`, `cylindrical`, `spherical`, `reposition`.
+
+```json
+{
+  "op": "autoAlignLayers",
+  "mode": "auto",
+  "targets": [
+    {
+      "layerName": "Frame 01"
+    },
+    {
+      "layerName": "Frame 02"
+    }
+  ]
+}
+```
+
+### `autoBlendLayers`
+
+- Aliases: `layer.autoBlend`
+- Required: at least 2 layers via `targets[]` or current active selection
+- Supported args: `contentAwareFillTransparentAreas`, `mode`, `seamlessTonesAndColors`, `targets`
+- Notes: `mode` supports `panorama` and `stackImages`.
+
+```json
+{
+  "op": "autoBlendLayers",
+  "mode": "panorama",
+  "seamlessTonesAndColors": true,
+  "contentAwareFillTransparentAreas": true,
+  "targets": [
+    {
+      "layerName": "Frame 01"
+    },
+    {
+      "layerName": "Frame 02"
     }
   ]
 }
@@ -1074,6 +1259,53 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `selectSubject`
+
+- Aliases: `selection.subject`
+- Required: None
+- Supported args: `allLayers`, `docRef`, `sampleAllLayers`, `target`
+
+```json
+{
+  "op": "selectSubject",
+  "sampleAllLayers": true
+}
+```
+
+### `selectColorRange`
+
+- Aliases: `selection.colorRange`
+- Required: None (or pass `descriptor`)
+- Supported args: `color`, `descriptor`, `docRef`, `fuzziness`, `invert`, `localizedColorClusters`, `options`, `sampledColor`, `strict`, `target`
+- Notes: Pass `descriptor` for advanced/host-specific Color Range options. Shorthand mode is best-effort; set `strict: true` to fail when Photoshop rejects shorthand descriptors.
+
+```json
+{
+  "op": "selectColorRange",
+  "color": "#22c55e",
+  "fuzziness": 40
+}
+```
+
+### `refineSelection`
+
+- Aliases: `selection.refine`
+- Required: None (or pass `descriptor`)
+- Supported args: `contrast`, `decontaminateAmount`, `decontaminateColors`, `descriptor`, `docRef`, `feather`, `options`, `output`, `outputTo`, `radius`, `shiftEdge`, `smartRadius`, `smooth`, `strict`, `target`
+- Notes: Uses Photoshop refine-edge behavior; pass `descriptor` for full host-specific control. Shorthand mode is best-effort; set `strict: true` to fail when Photoshop rejects shorthand descriptors.
+
+```json
+{
+  "op": "refineSelection",
+  "radius": 2,
+  "smooth": 4,
+  "feather": 0.8,
+  "contrast": 10,
+  "shiftEdge": -5,
+  "output": "selection"
+}
+```
+
 ### `selectRectangle`
 
 - Aliases: `selection.selectRectangle`
@@ -1246,6 +1478,47 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "op": "createPath",
   "name": "Subject Path",
   "tolerance": 2
+}
+```
+
+### `createPathFromPoints`
+
+- Aliases: `path.createFromPoints`
+- Required: `points[2+]`
+- Supported args: `closed`, `docRef`, `name`, `operation`, `points`, `shapeOperation`, `target`
+- Notes: Each point accepts `{x,y}` (or `anchor:[x,y]`) with optional handles as either `leftDirection/rightDirection` or `backward/forward`, plus optional `smooth`/`kind`. If Photoshop rejects explicit point descriptors in your version, psagent falls back to a polygon-selection work-path conversion (straight segments only).
+
+```json
+{
+  "op": "createPathFromPoints",
+  "name": "Diamond",
+  "closed": true,
+  "points": [
+    { "x": 540, "y": 120 },
+    { "x": 920, "y": 540 },
+    { "x": 540, "y": 960 },
+    { "x": 160, "y": 540 }
+  ]
+}
+```
+
+### `setPathPoints`
+
+- Aliases: `path.setPoints`
+- Required: `path/target`, `points[2+]`
+- Supported args: `closed`, `docRef`, `name`, `operation`, `path`, `pathId`, `pathName`, `points`, `shapeOperation`, `target`
+- Notes: Point format matches `createPathFromPoints` (`x/y` or `anchor`, optional handle pairs, optional `smooth`/`kind`).
+
+```json
+{
+  "op": "setPathPoints",
+  "path": "Diamond",
+  "points": [
+    { "x": 540, "y": 160 },
+    { "x": 900, "y": 540 },
+    { "x": 540, "y": 920 },
+    { "x": 180, "y": 540 }
+  ]
 }
 ```
 
@@ -1512,6 +1785,37 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `createVectorMask`
+
+- Aliases: `vectorMask.create`, `layerMask.vectorCreate`
+- Required: `target (or active layer)`
+- Supported args: `path`, `pathId`, `pathName`, `target`
+
+```json
+{
+  "op": "createVectorMask",
+  "target": {
+    "layerName": "Placed Photo"
+  },
+  "path": "Subject Path"
+}
+```
+
+### `deleteVectorMask`
+
+- Aliases: `vectorMask.delete`, `layerMask.vectorDelete`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "deleteVectorMask",
+  "target": {
+    "layerName": "Placed Photo"
+  }
+}
+```
+
 ## Adjustments and filters
 
 ### `createAdjustmentLayer`
@@ -1770,6 +2074,55 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `contentAwareFill`
+
+- Aliases: `contentAware.fill`
+- Required: active selection (or pass `descriptor` with custom behavior)
+- Supported args: `colorAdaptation`, `descriptor`, `docRef`, `mirror`, `options`, `rotationAdaptation`, `scale`, `target`
+
+```json
+{
+  "op": "contentAwareFill",
+  "colorAdaptation": true,
+  "rotationAdaptation": false
+}
+```
+
+### `contentAwareScale`
+
+- Aliases: `contentAware.scale`
+- Required: `target (or active layer)`
+- Supported args: `descriptor`, `height`, `options`, `scale`, `scaleX`, `scaleY`, `target`, `width`
+
+```json
+{
+  "op": "contentAwareScale",
+  "target": {
+    "layerName": "Hero"
+  },
+  "scaleX": 95,
+  "scaleY": 95
+}
+```
+
+### `contentAwareMove`
+
+- Aliases: `contentAware.move`
+- Required: `target (or active layer)`
+- Supported args: `adaptation`, `color`, `descriptor`, `dx`, `dy`, `horizontal`, `options`, `structure`, `target`, `vertical`, `x`, `y`
+
+```json
+{
+  "op": "contentAwareMove",
+  "target": {
+    "layerName": "Hero"
+  },
+  "x": 24,
+  "y": -12,
+  "adaptation": "veryStrict"
+}
+```
+
 ## Text and shapes
 
 ### `createTextLayer`
@@ -1829,6 +2182,43 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "fontSize": 64,
   "maxWidth": 860,
   "overflow": "resize"
+}
+```
+
+### `setTextWarp`
+
+- Aliases: `text.warp`
+- Required: `target (or active layer)` and at least one warp field
+- Supported args: `bend`, `horizontalDistortion`, `orientation`, `style`, `target`, `verticalDistortion`, `warpPerspective`, `warpPerspectiveOther`, `warpStyle`, `warpValue`
+
+```json
+{
+  "op": "setTextWarp",
+  "target": {
+    "layerName": "Headline"
+  },
+  "style": "arc",
+  "bend": 24,
+  "horizontalDistortion": 0,
+  "verticalDistortion": 0
+}
+```
+
+### `setTextOnPath`
+
+- Aliases: `text.onPath`
+- Required: `target (or active layer)` and `path/pathName/pathId` (or `commands[]/command/descriptor`)
+- Supported args: `command`, `commands`, `descriptor`, `options`, `orientation`, `path`, `pathId`, `pathName`, `strict`, `target`, `targetPath`
+- Notes: Photoshop text-on-path descriptors vary by host build. The shorthand payload is best-effort; pass explicit `commands`/`descriptor` for deterministic behavior. Set `strict: true` to fail when shorthand application is rejected.
+
+```json
+{
+  "op": "setTextOnPath",
+  "target": {
+    "layerName": "Headline"
+  },
+  "path": "Subject Path",
+  "orientation": "horizontal"
 }
 ```
 
@@ -1917,6 +2307,21 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "match": "^(Hero|CTA)$",
   "format": "png",
   "outputDir": "./tmp/layers"
+}
+```
+
+### `exportArtboards`
+
+- Aliases: `artboard.export`
+- Required: `outputDir` (or `commands[]/command/descriptor`)
+- Supported args: `command`, `commands`, `descriptor`, `format`, `options`, `outputDir`
+- Notes: For explicit multi-artboard export behavior across Photoshop versions, prefer `descriptor`/`commands`.
+
+```json
+{
+  "op": "exportArtboards",
+  "outputDir": "./tmp/artboards",
+  "format": "png"
 }
 ```
 

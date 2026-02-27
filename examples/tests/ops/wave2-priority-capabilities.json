@@ -1,0 +1,179 @@
+{
+  "transactionId": "wave2-priority-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "createDocument",
+      "name": "Wave2 Ops Doc",
+      "width": 1200,
+      "height": 900,
+      "ref": "docA"
+    },
+    {
+      "op": "createLayer",
+      "name": "Base",
+      "ref": "base"
+    },
+    {
+      "op": "createTextLayer",
+      "name": "Headline",
+      "text": "HELLO WORLD",
+      "position": { "x": 120, "y": 220 },
+      "fontSize": 72,
+      "ref": "headline"
+    },
+    {
+      "op": "createPathFromPoints",
+      "name": "Curve",
+      "closed": false,
+      "points": [
+        { "x": 120, "y": 260 },
+        { "x": 540, "y": 300 },
+        { "x": 980, "y": 280 }
+      ],
+      "ref": "curvePath"
+    },
+    {
+      "op": "setPathPoints",
+      "path": "Curve",
+      "points": [
+        { "x": 120, "y": 260 },
+        { "x": 560, "y": 320 },
+        { "x": 980, "y": 280 }
+      ]
+    },
+    {
+      "op": "setTextWarp",
+      "target": "$headline",
+      "style": "arc",
+      "bend": 16
+    },
+    {
+      "op": "setTextOnPath",
+      "target": "$headline",
+      "path": "Curve",
+      "orientation": "horizontal"
+    },
+    {
+      "op": "createArtboard",
+      "name": "AB1",
+      "x": 0,
+      "y": 0,
+      "width": 1200,
+      "height": 900,
+      "ref": "ab1"
+    },
+    {
+      "op": "resizeArtboard",
+      "target": "$ab1",
+      "x": 0,
+      "y": 0,
+      "width": 1000,
+      "height": 800
+    },
+    {
+      "op": "reorderArtboards",
+      "target": "$ab1",
+      "to": "front"
+    },
+    {
+      "op": "selectSubject",
+      "sampleAllLayers": true
+    },
+    {
+      "op": "selectColorRange",
+      "color": "#22c55e",
+      "fuzziness": 35
+    },
+    {
+      "op": "refineSelection",
+      "radius": 2,
+      "smooth": 3,
+      "feather": 0.8,
+      "contrast": 10,
+      "shiftEdge": -5,
+      "output": "selection"
+    },
+    {
+      "op": "createVectorMask",
+      "target": "$headline",
+      "path": "Curve"
+    },
+    {
+      "op": "deleteVectorMask",
+      "target": "$headline"
+    },
+    {
+      "op": "autoAlignLayers",
+      "targets": [
+        "$headline",
+        "$base"
+      ],
+      "mode": "auto"
+    },
+    {
+      "op": "autoBlendLayers",
+      "targets": [
+        "$headline",
+        "$base"
+      ],
+      "mode": "panorama",
+      "seamlessTonesAndColors": true,
+      "contentAwareFillTransparentAreas": true
+    },
+    {
+      "op": "contentAwareFill",
+      "colorAdaptation": true
+    },
+    {
+      "op": "contentAwareScale",
+      "target": "$base",
+      "scaleX": 96,
+      "scaleY": 96
+    },
+    {
+      "op": "contentAwareMove",
+      "target": "$base",
+      "x": 12,
+      "y": -8,
+      "adaptation": "veryStrict"
+    },
+    {
+      "op": "createHistorySnapshot",
+      "name": "Before Composite",
+      "ref": "snapshot1"
+    },
+    {
+      "op": "listHistoryStates",
+      "ref": "historyList"
+    },
+    {
+      "op": "restoreHistoryState",
+      "historyStateName": "Before Composite"
+    },
+    {
+      "op": "suspendHistory",
+      "name": "Scoped Batch",
+      "commands": [
+        {
+          "_obj": "noop"
+        }
+      ]
+    },
+    {
+      "op": "exportArtboards",
+      "outputDir": "./tmp/artboards",
+      "format": "png"
+    },
+    {
+      "op": "closeDocument",
+      "save": false
+    }
+  ],
+  "safety": {
+    "dryRun": false,
+    "onError": "abort"
+  }
+}
