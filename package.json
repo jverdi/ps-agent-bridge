@@ -27,12 +27,13 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.json",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "version:sync": "node scripts/build/generate-version.mjs",
+    "build": "npm run -s version:sync && rm -rf dist && tsc -p tsconfig.json",
+    "check": "npm run -s version:sync && tsc -p tsconfig.json --noEmit",
     "docs:validate": "bash scripts/docs/validate.sh",
     "prepublishOnly": "npm run check && npm run build",
-    "dev": "tsx psagent/src/cli.ts",
-    "test:integration": "tsx --test tests/integration/**/*.test.ts",
+    "dev": "npm run -s version:sync && tsx psagent/src/cli.ts",
+    "test:integration": "npm run -s version:sync && tsx --test tests/integration/**/*.test.ts",
     "start": "node dist/psagent/src/cli.js",
     "mcp": "node dist/psagent/src/mcp/server.js",
     "bridge:reload": "bash scripts/dev/reload-psagent-bridge.sh",
