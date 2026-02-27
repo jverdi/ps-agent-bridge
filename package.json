@@ -1,6 +1,6 @@
 {
   "name": "@jverdi/agent-bridge-for-photoshop",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "Photoshop agent CLI scaffold with desktop adapter",
   "license": "MIT",
